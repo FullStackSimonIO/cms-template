@@ -277,3 +277,4 @@ If you have any issues or questions, reach out to us on [Discord](https://discor
 # fit-mit-mary
 # julian-videograph
 # cms-template
+# max-mustermann
