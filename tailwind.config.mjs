@@ -15,7 +15,6 @@ const config = {
     './payload.config.ts',
   ],
   presets: [relumePreset],
-  darkMode: ['selector', '[data-theme="dark"]'],
   plugins: [tailwindcssAnimate, typography],
   prefix: '',
   safelist: [

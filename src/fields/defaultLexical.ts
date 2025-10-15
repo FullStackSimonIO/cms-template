@@ -7,15 +7,43 @@ import {
   lexicalEditor,
   UnderlineFeature,
   type LinkFields,
+  HeadingFeature,
+  BlockquoteFeature,
+  OrderedListFeature,
+  UnorderedListFeature,
+  ChecklistFeature,
+  IndentFeature,
+  AlignFeature,
+  HorizontalRuleFeature,
 } from '@payloadcms/richtext-lexical'
+import {
+  BgColorFeature,
+  TextColorFeature,
+  HighlightColorFeature,
+  YoutubeFeature,
+  VimeoFeature,
+} from 'payloadcms-lexical-ext'
+
+// Import CSS for color picker
+import 'payloadcms-lexical-ext/client/client.css'
 
 export const defaultLexical: Config['editor'] = lexicalEditor({
   features: () => {
     return [
       ParagraphFeature(),
+      HeadingFeature({
+        enabledHeadingSizes: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
+      }),
       UnderlineFeature(),
       BoldFeature(),
       ItalicFeature(),
+      BlockquoteFeature(),
+      OrderedListFeature(),
+      UnorderedListFeature(),
+      ChecklistFeature(),
+      IndentFeature(),
+      AlignFeature(),
+      HorizontalRuleFeature(),
       LinkFeature({
         enabledCollections: ['pages', 'posts'],
         fields: ({ defaultFields }) => {
@@ -44,6 +72,12 @@ export const defaultLexical: Config['editor'] = lexicalEditor({
           ]
         },
       }),
+      // Extended features from payloadcms-lexical-ext
+      TextColorFeature(),
+      HighlightColorFeature(),
+      BgColorFeature(),
+      YoutubeFeature(),
+      VimeoFeature(),
     ]
   },
 })

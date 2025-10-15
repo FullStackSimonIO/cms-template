@@ -10,6 +10,7 @@ import {
   RichText as RichTextWithoutBlocks,
 } from '@payloadcms/richtext-lexical/react'
 import { cn } from '@/utilities/ui'
+import { JSXConverters as LexicalExtJSXConverters } from 'payloadcms-lexical-ext'
 
 type NodeTypes = DefaultNodeTypes | SerializedBlockNode // ! <CTABlockProps | MediaBlockProps | BannerBlockProps | CodeBlockProps> - Generischen Block hier in Richtext definieren
 
@@ -25,6 +26,7 @@ const internalDocToHref = ({ linkNode }: { linkNode: SerializedLinkNode }) => {
 const jsxConverters: JSXConvertersFunction<NodeTypes> = ({ defaultConverters }) => ({
   ...defaultConverters,
   ...LinkJSXConverter({ internalDocToHref }),
+  ...LexicalExtJSXConverters,
   blocks: {
     // ! Hier können die Blöcke definiert werden, die in Richtext verwendet werden
     /* banner: ({ node }) => <BannerBlock className="col-start-2 mb-4" {...node.fields} />,
@@ -58,7 +60,7 @@ export default function RichText(props: Props) {
         {
           'container ': enableGutter,
           'max-w-none': !enableGutter,
-          'mx-auto prose md:prose-md dark:prose-invert ': enableProse,
+          'mx-auto prose md:prose-md': enableProse,
         },
         className,
       )}
