@@ -1,0 +1,18 @@
+---
+title: 'Build Full Payload Project'
+description: 'Führt alle Schritte nacheinander aus und leert nach jedem Command automatisch den Context.'
+---
+
+1. Führe `setup-project-workflow` aus.
+2. Führe `generate-secrets` aus
+3. Führe `style-buttons` aus.
+4. Führe `clear-context` aus.
+
+5. Führe `build-navbar` aus.
+6. Führe `clear-context` aus.
+
+7. Führe `build-heroes` aus.
+8. Führe `clear-context` aus.
+
+9. Bestätige erfolgreichen Gesamtaufbau:
+   > ✅ Projekt vollständig aufgebaut. Alle Teilcommands erfolgreich ausgeführt, Context nach jedem Schritt geleert.

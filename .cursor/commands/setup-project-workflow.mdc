@@ -1,0 +1,11 @@
+---
+title: 'Setup Project Workflow'
+description: 'Passt die Farben im `globals.css`-file dem Design auf Figma an, passt Größen an & legt den Heading-Font und den Paragraph-Font an'
+---
+
+1. Analysiere die Farben, das Design, die Fonts und die Styles aus dem verbundenen Figma-Projekt.
+2. Schreibe die Farben in die Tailwind-Variablen "accent", "heading", "paragraph" und "background" und mach diese zugänglich
+3. lege ein fonts.ts file an und hinterlege im Projekt den Font für die Überschriften "heading" und Fließtext "paragraph"
+4. Passe die Schriftgrößen im globals.css für die Texte an & übernimm diese auch für die RichText Komponente
+5. Übernimm auch weiter notwendige Änderungen, Anpassungen und Optimierungen für das globals.css und das dazugehörige tailwind.config.ts
+6. Gib mir eine Zusammenfassung, welche Varianten erzeugt wurden.

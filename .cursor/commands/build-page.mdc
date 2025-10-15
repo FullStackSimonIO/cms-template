@@ -1,0 +1,13 @@
+---
+alwaysApply: true
+---
+
+---
+
+title: "Setup Project Workflow"
+description: "Führt die initialen Setup-Schritte für Payload-Projekte aus"
+
+---
+
+1. Farben & Fonts aus Figma importieren und in `tailwind.config.ts` eintragen
+2. Danach `generate-buttons-from-figma` Command starten

@@ -1,0 +1,13 @@
+---
+alwaysApply: true
+title: 'Test Figma MCP Connection'
+description: 'Überprüft, ob Cursor Zugriff auf Figma-Komponenten hat'
+---
+
+1. Scanne das verbundene Figma-Projekt über die MCP-Integration.
+2. Liste alle erkannten Figma-Komponenten und Frames auf.
+3. Gib mir eine kurze Tabelle aus mit:
+   - Komponentennamen
+   - Frame-IDs
+   - Eltern-Page
+4. Wenn keine Komponenten erkannt werden, gib eine Fehlermeldung aus: "Keine Figma-Komponenten gefunden. Prüfe fileKey oder Include in Context."

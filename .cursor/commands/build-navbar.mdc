@@ -1,0 +1,98 @@
+---
+title: 'Build Navbar'
+description: 'Analysiert die Navbar aus Figma und erstellt eine vollständig responsive Navigationsleiste mit perfektem deutschem UX in PayloadCMS.'
+---
+
+1. **Figma-Analyse**
+   - Scanne das verbundene Figma-Projekt über die MCP-Instanz.
+   - Suche nach der Komponente mit dem Namen _Navbar_ oder ähnlich (z. B. `Header`, `Navigation`, `Top Bar`).
+   - Analysiere das Layout, Spalten, Markenlogo, Menüstruktur, Dropdowns, CTA-Buttons und mobile Darstellung.
+
+2. **Matching mit Datenbank / Relume-Komponenten**
+   - Vergleiche den Namen der Figma-Komponente mit den React-Komponenten im Projektverzeichnis `src/components/relume/`.
+   - Wenn eine passende Relume-Komponente gefunden wird (z. B. `Navbar.tsx`), importiere sie in den globalen Bereich unter:
+     ```
+     src/components/globals/navbar/
+     ```
+   - Erstelle dort zwei Dateien:
+     - `DesktopNavbar.tsx`
+     - `MobileNavbar.tsx`
+   - Beide Komponenten sollen responsive Tailwind-Styles enthalten, die sich an den Figma-Breakpoints orientieren.
+
+3. **Komponentenstruktur**
+   - DesktopNavbar: klassische horizontale Navigation mit Logo links, Menü in der Mitte, CTA rechts.
+   - MobileNavbar: Hamburger-Menü mit Slide-In oder Dropdown, optimiert für Touch.
+   - Verwende `framer-motion` für sanfte Ein-/Ausblendanimationen.
+   - Sorge für barrierefreie Navigation (`aria-labels`, `role="navigation"`, `aria-expanded` etc.).
+
+4. **Config.ts für PayloadCMS**
+   - Lege im Verzeichnis:
+     ```
+     src/globals/Navbar/config.ts
+     ```
+     eine neue Config-Datei an.
+   - Diese Datei definiert ein deutsches, nutzerfreundliches Admin-UX für die Navigationsleiste mit folgenden Optionen:
+
+     ```typescript
+     import { GlobalConfig } from 'payload/types'
+
+     export const Navbar: GlobalConfig = {
+       slug: 'navbar',
+       label: 'Navigationsleiste',
+       admin: {
+         group: 'Globale Einstellungen',
+         description: 'Konfiguriere hier die Navigationsleiste deiner Website.',
+       },
+       fields: [
+         {
+           name: 'logo',
+           type: 'upload',
+           relationTo: 'media',
+           label: 'Logo',
+           required: true,
+           admin: { description: 'Logo, das in der Navigationsleiste angezeigt wird.' },
+         },
+         {
+           name: 'links',
+           type: 'array',
+           label: 'Navigationslinks',
+           labels: { singular: 'Link', plural: 'Links' },
+           admin: { description: 'Füge hier die Hauptlinks der Navigation hinzu.' },
+           fields: [
+             { name: 'label', type: 'text', label: 'Link-Text', required: true },
+             { name: 'url', type: 'text', label: 'Ziel-URL', required: true },
+             { name: 'newTab', type: 'checkbox', label: 'In neuem Tab öffnen' },
+           ],
+         },
+         {
+           name: 'quickLinks',
+           type: 'group',
+           label: 'Quick Links',
+           admin: { description: 'Direkte Kontaktmöglichkeiten im Header.' },
+           fields: [
+             { name: 'email', type: 'email', label: 'E-Mail-Adresse' },
+             { name: 'phone', type: 'text', label: 'Telefonnummer' },
+             { name: 'whatsapp', type: 'text', label: 'WhatsApp-Link' },
+             { name: 'instagram', type: 'text', label: 'Instagram-Profil' },
+           ],
+         },
+       ],
+     }
+     ```
+
+   - Alle Feldnamen und Labels müssen auf Deutsch sein.
+   - Die Admin-Beschreibungen sollen klar und anwenderfreundlich formuliert sein.
+
+5. **Responsiveness & Testing**
+   - Stelle sicher, dass die Desktop- und Mobile-Komponenten perfekt responsiv sind.
+   - Teste Breakpoints von Figma (z. B. 320 px, 768 px, 1024 px, 1440 px).
+   - Passe Tailwind-Klassen entsprechend an (`sm:`, `md:`, `lg:`, `xl:`).
+   - Teste Navigation auf Desktop, Tablet und Mobile simuliert.
+   - Achte auf gutes Motion-UX (z. B. Slide-In, Fade-Out, leichte Skalierung beim Öffnen).
+
+6. **Zusatz: UX & Integration**
+   - Beschreibe im Chat zusammenfassend alle generierten Dateien.
+   - Bestätige, dass die Navigationsleiste in `payload.config.ts` unter `globals` registriert ist.
+   - Prüfe, ob im Admin-Panel das Feld _Navigationsleiste_ korrekt angezeigt wird.
+   - Beende mit der Bestätigung:
+     > „✅ Navigationsleiste erfolgreich aus Figma generiert, Payload-Config mit deutschem UX erstellt, responsive Komponenten hinzugefügt.“

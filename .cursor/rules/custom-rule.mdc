@@ -1,0 +1,44 @@
+---
+alwaysApply: true
+---
+
+# PayloadCMS + Figma MCP Development Rules
+
+## Architektur
+
+- Projekt nutzt **Next.js + PayloadCMS + Tailwind + ShadCN/UI**.
+- Jede Figma-Komponente aus dem Relume-Template wird als eigener **Payload Block** umgesetzt.
+- Deutsche UX im Admin Panel ist Pflicht (alle Labels, Beschreibungen, Feldnamen auf Deutsch).
+
+## Dateistruktur
+
+- `src/blocks/{BlockName}/config.ts` → Payload Config
+- `src/components/blocks/{BlockName}/Component.tsx` → React Komponente
+- `src/collections/{CollectionName}/config.ts` → Collections
+- `src/fields/{FieldName}.ts` → Custom Fields
+- Alle Dateien in TypeScript.
+
+## Entwicklungsworkflow
+
+1. Farben & Fonts aus Figma importieren → Tailwind anpassen
+2. CMSLink-Komponente erstellen (mit ShadCN Buttons)
+3. Navbar + Footer entwickeln und in Payload registrieren
+4. Hero Section aus der Pages Collection bauen
+5. Alle Figma-Blöcke als Payload-Blöcke umsetzen
+6. Payload Configs in Deutsch beschriften
+7. PageRenderer.tsx anpassen für dynamisches Rendering
+
+## Block-Konvention
+
+- Jeder Block hat: `title`, `content (RichText)`, `media`, `cta (CMSLink)`
+- CMSLink enthält: `label`, `type`, `url`, `newTab`
+- Blöcke werden in der `Pages` Collection über das Feld `layout` eingefügt
+- RichText-Felder erhalten ShadCN Styling
+
+## Coding Style
+
+- TypeScript strict mode aktiv
+- Imports alphabetisch sortiert
+- Props mit Interfaces typisieren
+- Kommentare und UX-Texte auf Deutsch
+- Kein Inline-CSS

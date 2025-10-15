@@ -8,6 +8,7 @@ import {
 } from '@payloadcms/richtext-lexical'
 
 import { linkGroup } from '@/fields/linkGroup'
+import { PostHero } from './PostHero'
 
 export const hero: Field = {
   name: 'hero',
@@ -22,10 +23,6 @@ export const hero: Field = {
         {
           label: 'None',
           value: 'none',
-        },
-        {
-          label: 'Header 1',
-          value: 'header1',
         },
       ],
       required: true,
@@ -64,25 +61,7 @@ export const hero: Field = {
       label: 'Hero Section Medien',
       type: 'array', // <-- Jetzt ein Array, damit du mehrere Bilder speichern kannst
       admin: {
-        condition: (_, { type } = {}) =>
-          [
-            'highImpact',
-            'mediumImpact',
-            'header1',
-            'header5',
-            'header9',
-            'header19',
-            'header26',
-            'header30',
-            'header36',
-            'header37',
-            'header76',
-            'header77',
-            'header78',
-            'header83',
-            'header104',
-            'header127',
-          ].includes(type),
+        condition: (_, { type } = {}) => [PostHero].includes(type),
       },
       fields: [
         {

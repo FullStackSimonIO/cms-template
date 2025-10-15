@@ -1,0 +1,11 @@
+---
+title: 'Clear Context'
+description: 'Leert den aktuellen Agent Context nach Ausführung eines Commands, um den Speicher für den nächsten Workflow freizugeben.'
+---
+
+1. Stoppe alle laufenden Tasks oder Prompts.
+2. Lösche den aktuellen Context-Speicher vollständig.
+3. Entferne alle referenzierten Dateien, die im letzten Command geladen wurden.
+4. Bereite den Agent auf den nächsten Command vor.
+5. Bestätige mit:
+   > "🧹 Context erfolgreich geleert – bereit für den nächsten Schritt."
