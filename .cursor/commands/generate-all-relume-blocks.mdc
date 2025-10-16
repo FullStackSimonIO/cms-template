@@ -115,11 +115,25 @@ sortedCategories.forEach(([cat, info], idx) => {
 
 ---
 
-### PHASE 2: Block-Generierung (Dauer: ~5-10 Min)
+### PHASE 2: Hero-Generierung (Dauer: ~3-5 Min)
 
 ```bash
+# Zuerst Heroes mit conditional fields
+> Generate Heroes from Figma Inventory
+```
+
+**Output:** Heroes unter `/src/heros/` mit intelligenten conditional fields
+
+---
+
+### PHASE 3: Block-Generierung (Dauer: ~5-8 Min)
+
+```bash
+# Dann restliche Blocks
 > Generate Blocks from Figma Inventory
 ```
+
+**Output:** Nur Blocks (Heroes ausgeschlossen)
 
 Wir generieren in Batches, um Token-Limits und Performance zu optimieren.
 

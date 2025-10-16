@@ -52,8 +52,14 @@ if (!inventory.relumeMapping || inventory.relumeMapping.length === 0) {
 // 2. Erstelle Liste der zu generierenden Blocks
 const blocksToGenerate = []
 
-// Automatisch gemappte Komponenten
+// Automatisch gemappte Komponenten (OHNE Heroes!)
 for (const mapping of inventory.relumeMapping) {
+  // Heroes werden separat behandelt
+  if (mapping.category === 'Hero') {
+    console.log(`   ⏭️ ${mapping.figma.name} → Hero (wird separat generiert)`)
+    continue
+  }
+  
   blocksToGenerate.push({
     figmaComponent: mapping.figma,
     relumeTemplate: mapping.relume,

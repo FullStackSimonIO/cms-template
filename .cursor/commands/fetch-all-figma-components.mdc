@@ -132,7 +132,7 @@ console.log(`📊 ${componentInstances.size} eindeutige Komponenten identifizier
 const categorized = {
   // Semantic Kategorien (basierend auf Namen + Kontext)
   Layout: [],
-  Header: [],
+  Hero: [],  // ← Separate Kategorie für Heroes!
   CTA: [],
   Testimonials: [],
   Contact: [],
@@ -159,7 +159,7 @@ const categorized = {
 // Intelligente Kategorisierung mit Pattern Matching
 const categoryPatterns = {
   Layout: [/layout/i, /grid/i, /container/i, /section/i, /wrapper/i],
-  Header: [/header/i, /hero/i, /banner/i],
+  Hero: [/header/i, /hero/i, /banner/i],  // ← Header-Komponenten = Heroes!
   CTA: [/cta/i, /call.*action/i, /button.*section/i],
   Testimonials: [/testimonial/i, /review/i, /rating/i],
   Contact: [/contact/i, /kontakt/i, /form.*contact/i],
