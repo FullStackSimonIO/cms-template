@@ -6,10 +6,16 @@ Dieses Verzeichnis enthält optimierte Cursor MDC-Befehle für die systematische
 
 ## 📋 Übersicht
 
-### Anzahl der Komponenten (für Pages Collection)
-- **20 Kategorien** (für statische Pages)
-- **1071 Relume-Komponenten**
-- **3213 zu generierende Dateien** (1071 × 3)
+### ⚠️ WICHTIG: NUR FIGMA-KOMPONENTEN WERDEN GENERIERT!
+
+**Verfügbare Relume-Templates:**
+- 26 Kategorien im `/relume/` Ordner
+- 1243 Relume-Komponenten als Templates
+
+**Tatsächlich generiert (aus Figma):**
+- **30-80 Blocks** (typisch für Agentur-Websites)
+- Nur die im Figma-Design tatsächlich verwendeten Komponenten
+- **NICHT** alle 1243 Relume-Templates!
 
 ### Ausgeschlossen (für separate Module)
 - **6 Kategorien** (Blog, Career, Events, Portfolio)
