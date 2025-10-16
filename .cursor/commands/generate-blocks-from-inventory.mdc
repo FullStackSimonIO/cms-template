@@ -52,13 +52,10 @@ if (!inventory.relumeMapping || inventory.relumeMapping.length === 0) {
 // 2. Erstelle Liste der zu generierenden Blocks
 const blocksToGenerate = []
 
-// Automatisch gemappte Komponenten (OHNE Heroes!)
+// Automatisch gemappte Komponenten (INKL. Heroes, Navbar, Footer!)
 for (const mapping of inventory.relumeMapping) {
-  // Heroes werden separat behandelt
-  if (mapping.category === 'Hero') {
-    console.log(`   ⏭️ ${mapping.figma.name} → Hero (wird separat generiert)`)
-    continue
-  }
+  // KEINE Ausschlüsse! Alle Komponenten werden generiert.
+  // Heroes, Navbar, Footer werden als normale Blocks behandelt.
   
   blocksToGenerate.push({
     figmaComponent: mapping.figma,
@@ -67,6 +64,8 @@ for (const mapping of inventory.relumeMapping) {
     blockName: generateBlockName(mapping.figma.name),
     generationType: 'auto',
   })
+  
+  console.log(`   ✅ ${mapping.category}: ${mapping.figma.name}`)
 }
 
 // Unmapped Components (mit Fallback-Template)
