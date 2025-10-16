@@ -1,0 +1,474 @@
+---
+title: 'Figma zu Payload - Master Workflow'
+description: 'Kompletter Workflow: Figma Design Analyse → Navbar → Footer → Heroes → Blocks. ALLE Komponenten werden korrekt erkannt und kategorisiert.'
+alwaysApply: true
+---
+
+## 🎯 Ziel
+Vollständiger Workflow von Figma-Design zu PayloadCMS mit korrekter Kategorisierung:
+- **Navbar-Komponenten** → Globals (Mobile + Desktop getrennt)
+- **Footer-Komponenten** → Globals (Mobile + Desktop getrennt)  
+- **Header-Komponenten** → Heroes unter `/src/heroes/` (mit conditional fields)
+- **Alle anderen** → PayloadCMS Blocks unter `/src/blocks/`
+
+---
+
+## 📋 Workflow-Schritte
+
+### Phase 1: Figma Check & Design-Analyse
+```bash
+✅ Schritt 1: Figma-Verbindung prüfen
+✅ Schritt 2: ALLE Komponenten erfassen (keine Ausschlüsse!)
+✅ Schritt 3: Intelligente Kategorisierung
+```
+
+**Was passiert:**
+- Figma MCP-Verbindung testen
+- Komplettes Figma-File scannen (rekursiv alle Ebenen)
+- ALLE Komponenten erfassen (FRAME, COMPONENT, INSTANCE, etc.)
+- Kategorisierung nach Namen-Pattern:
+  - `/nav(bar)?|navigation|menu/i` → **Navbar**
+  - `/footer|fußzeile/i` → **Footer**
+  - `/header|hero|banner/i` → **Hero**
+  - Alle anderen → **Blocks** (nach Kategorie)
+
+**Output:**
+- `FIGMA_INVENTORY.json` mit vollständiger Kategorisierung
+- `FIGMA_COMPONENTS_CATEGORIZED.md` (Übersicht)
+
+---
+
+### Phase 2: Design Rework
+```bash
+✅ Schritt 4: Farben & Fonts aus Figma extrahieren
+✅ Schritt 5: globals.css anpassen
+✅ Schritt 6: tailwind.config.ts aktualisieren
+```
+
+**Was passiert:**
+- Design-Tokens aus Figma analysieren
+- Farben → Tailwind CSS Variables (background, foreground, primary, etc.)
+- Fonts → `src/app/fonts.ts` (Heading + Paragraph)
+- Typografie-Skala → globals.css
+- Spacing, Border-Radius → tailwind.config.ts
+
+**Output:**
+- Aktualisierte `globals.css`
+- Aktualisierte `tailwind.config.mjs`
+- `src/app/fonts.ts` (falls nicht vorhanden)
+
+---
+
+### Phase 3: Button Design
+```bash
+✅ Schritt 7: Button-Komponente aus Figma erstellen
+```
+
+**Was passiert:**
+- Suche Button-Komponenten in Figma
+- Analysiere Varianten (Primary, Secondary, Ghost, Outline)
+- Extrahiere Styles (Farben, Padding, Border-Radius, Hover-States)
+- Generiere `src/components/ui/button.tsx` mit allen Varianten
+- Integriere mit CMSLink-Komponente
+
+**Output:**
+- Aktualisierte `src/components/ui/button.tsx` mit Figma-Styles
+
+---
+
+### Phase 4: Navbar-Generierung
+```bash
+✅ Schritt 8: Navbar aus Figma analysieren
+✅ Schritt 9: DesktopNavbar.tsx erstellen
+✅ Schritt 10: MobileNavbar.tsx erstellen
+✅ Schritt 11: Navbar Global Config erstellen
+```
+
+**Was passiert:**
+- Finde Navbar-Komponenten in FIGMA_INVENTORY.json
+- Analysiere Layout (Logo-Position, Menu-Items, CTAs, Quick-Links)
+- Mappe zu Relume-Template (falls vorhanden)
+- Generiere zwei Komponenten:
+  - `src/Header/DesktopNav/index.tsx` (horizontale Navigation)
+  - `src/Header/MobileNav/index.tsx` (Hamburger-Menu mit Slide-In)
+- Erstelle `src/Header/config.ts` (Payload Global Config auf Deutsch)
+- Registriere in `payload.config.ts` unter `globals`
+
+**Output:**
+- `src/Header/DesktopNav/index.tsx`
+- `src/Header/MobileNav/index.tsx`
+- `src/Header/config.ts`
+- Navbar registriert in PayloadCMS
+
+---
+
+### Phase 5: Footer-Generierung
+```bash
+✅ Schritt 12: Footer aus Figma analysieren
+✅ Schritt 13: DesktopFooter.tsx erstellen
+✅ Schritt 14: MobileFooter.tsx erstellen
+✅ Schritt 15: Footer Global Config erstellen
+```
+
+**Was passiert:**
+- Finde Footer-Komponenten in FIGMA_INVENTORY.json
+- Analysiere Layout (Spalten, Social-Links, Copyright, etc.)
+- Mappe zu Relume-Template (falls vorhanden)
+- Generiere zwei Komponenten:
+  - `src/Footer/DesktopFooter/index.tsx`
+  - `src/Footer/MobileFooter/index.tsx`
+- Erstelle `src/Footer/config.ts` (Payload Global Config auf Deutsch)
+- Registriere in `payload.config.ts` unter `globals`
+
+**Output:**
+- `src/Footer/DesktopFooter/index.tsx`
+- `src/Footer/MobileFooter/index.tsx`
+- `src/Footer/config.ts`
+- Footer registriert in PayloadCMS
+
+---
+
+### Phase 6: Hero-Generierung
+```bash
+✅ Schritt 16: Header-Komponenten aus Figma analysieren
+✅ Schritt 17: Hero-Typen bestimmen
+✅ Schritt 18: Hero-Komponenten generieren
+✅ Schritt 19: Zentrale Hero-Config mit conditional fields
+✅ Schritt 20: RenderHero.tsx erstellen
+```
+
+**Was passiert:**
+- Finde Header/Hero-Komponenten in FIGMA_INVENTORY.json
+- Analysiere Struktur jeder Hero (Bilder, Texte, Buttons, Forms, etc.)
+- Bestimme Hero-Typ:
+  - `heroSimple` - Nur Text
+  - `heroWithImage` - Text + 1 Bild + CTAs
+  - `heroWithGallery` - Text + mehrere Bilder
+  - `heroWithFeatures` - Text + Feature-Liste
+  - `heroWithForm` - Text + Formular
+  - `heroWithVideo` - Text + Video
+  - `heroSplitScreen` - Text + 2 Bilder
+- Generiere für jede Hero:
+  - `src/heros/Hero1/index.tsx` (React-Komponente)
+- Generiere zentrale Config:
+  - `src/heros/config.ts` mit **conditional fields**
+  - Felder erscheinen basierend auf ausgewähltem Hero-Typ
+- Generiere Renderer:
+  - `src/heros/RenderHero.tsx` (Hero-Type → Komponente Mapping)
+- Integriere in Pages Collection
+
+**Output:**
+- `src/heros/Hero1/index.tsx`, `Hero2/index.tsx`, etc.
+- `src/heros/config.ts` (mit conditional fields)
+- `src/heros/RenderHero.tsx`
+- Hero-Field in Pages Collection integriert
+
+**Admin-Panel Verhalten:**
+```
+Pages → Hero Section → Hero-Typ auswählen
+→ Je nach Auswahl erscheinen unterschiedliche Felder!
+
+Beispiel:
+- Wähle "Hero1" → Zeigt: Titel, Beschreibung, Bild, 2 Buttons
+- Wähle "Hero2" → Zeigt: Titel, Beschreibung, Galerie, 1 Button
+- Wähle "Hero3" → Zeigt: Titel, Features-Liste, Formular
+```
+
+---
+
+### Phase 7: Block-Generierung
+```bash
+✅ Schritt 21: Verbleibende Komponenten filtern
+✅ Schritt 22: Blocks generieren (nach Kategorie)
+✅ Schritt 23: Zentrale Registrierung
+✅ Schritt 24: PageRenderer aktualisieren
+```
+
+**Was passiert:**
+- Filtere aus FIGMA_INVENTORY.json:
+  - **NICHT** Navbar-Komponenten (bereits als Global)
+  - **NICHT** Footer-Komponenten (bereits als Global)
+  - **NICHT** Header/Hero-Komponenten (bereits unter /heroes/)
+  - **NUR** die verbleibenden Komponenten
+- Gruppiere nach Kategorie (Layout, CTA, Contact, Testimonials, etc.)
+- Generiere für jede Komponente:
+  - `src/blocks/{Category}/{BlockName}/Component.tsx`
+  - `src/blocks/{Category}/{BlockName}/config.ts`
+  - `src/blocks/{Category}/{BlockName}/index.ts`
+- Basis: Relume-Template aus `relume/{Category}/{ComponentName}/`
+- Anpassung: Styles aus Figma-Komponente
+- Zentrale Registrierung:
+  - `src/blocks/index.ts` (alle Exports)
+  - `src/collections/Pages/config.ts` (Blocks-Array)
+  - `src/components/PageRenderer/index.tsx` (Component-Mapping)
+
+**Output:**
+- Alle Blocks unter `src/blocks/{Category}/{BlockName}/`
+- Zentrale `src/blocks/index.ts`
+- Aktualisierte Pages Collection
+- Aktualisierter PageRenderer
+
+---
+
+## 🔄 Vollständiger Workflow
+
+### Automatischer Ablauf:
+
+```typescript
+// 1. Figma Check
+await checkFigmaConnection()
+await fetchAllFigmaComponents() // ALLE Komponenten, keine Ausschlüsse!
+await categorizeFigmaComponents() // Intelligente Kategorisierung
+
+// 2. Design Rework
+await extractDesignTokens()
+await updateGlobalsCss()
+await updateTailwindConfig()
+
+// 3. Button Design
+await generateButtonComponent()
+
+// 4. Navbar
+const navbarComponents = inventory.categorized.Navbar
+await generateDesktopNav(navbarComponents[0])
+await generateMobileNav(navbarComponents[0])
+await generateNavbarConfig()
+await registerNavbarGlobal()
+
+// 5. Footer
+const footerComponents = inventory.categorized.Footer
+await generateDesktopFooter(footerComponents[0])
+await generateMobileFooter(footerComponents[0])
+await generateFooterConfig()
+await registerFooterGlobal()
+
+// 6. Heroes
+const heroComponents = inventory.categorized.Hero
+for (const hero of heroComponents) {
+  const heroType = analyzeHeroStructure(hero)
+  await generateHeroComponent(hero, heroType)
+}
+await generateHeroConfig(heroComponents) // Mit conditional fields!
+await generateRenderHero(heroComponents)
+await integrateHeroInPages()
+
+// 7. Blocks (alle verbleibenden Komponenten)
+const blockComponents = inventory.categorized.filter(
+  cat => !['Navbar', 'Footer', 'Hero'].includes(cat)
+)
+for (const [category, components] of blockComponents) {
+  for (const comp of components) {
+    await generateBlock(category, comp)
+  }
+}
+await generateCentralExports()
+await registerBlocksInPages()
+await updatePageRenderer()
+
+// 8. Validierung
+await validateTypeScript()
+await buildProject()
+await generateDocumentation()
+```
+
+---
+
+## 📊 Erwartete Komponenten-Verteilung
+
+**Typisches Projekt:**
+
+```
+FIGMA_INVENTORY.json:
+{
+  "meta": {
+    "totalComponents": 45-80
+  },
+  "categorized": {
+    "Navbar": [1-2],     → Globals (Mobile + Desktop)
+    "Footer": [1-2],     → Globals (Mobile + Desktop)
+    "Hero": [3-8],       → /src/heroes/ (mit conditional fields)
+    "Layout": [10-20],   → Blocks
+    "CTA": [3-8],        → Blocks
+    "Contact": [2-4],    → Blocks
+    "Testimonials": [2-3], → Blocks
+    "Pricing": [1-2],    → Blocks
+    "Gallery": [2-4],    → Blocks
+    "Team": [1-2],       → Blocks
+    "FAQ": [1-2],        → Blocks
+    "Weitere": [5-15]    → Blocks
+  }
+}
+```
+
+**Generierte Struktur:**
+
+```
+src/
+├── Header/
+│   ├── DesktopNav/
+│   │   └── index.tsx
+│   ├── MobileNav/
+│   │   └── index.tsx
+│   └── config.ts (Global Config)
+│
+├── Footer/
+│   ├── DesktopFooter/
+│   │   └── index.tsx
+│   ├── MobileFooter/
+│   │   └── index.tsx
+│   └── config.ts (Global Config)
+│
+├── heros/
+│   ├── Hero1/
+│   │   └── index.tsx
+│   ├── Hero2/
+│   │   └── index.tsx
+│   ├── Hero3/
+│   │   └── index.tsx
+│   ├── config.ts (mit conditional fields!)
+│   └── RenderHero.tsx
+│
+└── blocks/
+    ├── Layout/
+    │   ├── Layout1/
+    │   │   ├── Component.tsx
+    │   │   ├── config.ts
+    │   │   └── index.ts
+    │   └── ... (10-20 Blocks)
+    ├── CTA/
+    │   └── ... (3-8 Blocks)
+    ├── Contact/
+    │   └── ... (2-4 Blocks)
+    └── ... (weitere Kategorien)
+    └── index.ts (zentrale Exports)
+```
+
+---
+
+## ✅ Checkliste - Vollständigkeit
+
+Nach Workflow-Durchlauf prüfen:
+
+### Figma-Erfassung:
+- [ ] ALLE Komponenten erfasst (keine Ausschlüsse)
+- [ ] Navbar-Komponenten erkannt
+- [ ] Footer-Komponenten erkannt
+- [ ] Header/Hero-Komponenten erkannt
+- [ ] Alle anderen Komponenten erkannt
+
+### Design:
+- [ ] globals.css aktualisiert
+- [ ] tailwind.config.ts aktualisiert
+- [ ] Fonts importiert
+- [ ] Button-Komponente erstellt
+
+### Navbar:
+- [ ] DesktopNav generiert
+- [ ] MobileNav generiert
+- [ ] Navbar Global Config erstellt
+- [ ] In payload.config.ts registriert
+- [ ] Im Admin-Panel sichtbar
+
+### Footer:
+- [ ] DesktopFooter generiert
+- [ ] MobileFooter generiert
+- [ ] Footer Global Config erstellt
+- [ ] In payload.config.ts registriert
+- [ ] Im Admin-Panel sichtbar
+
+### Heroes:
+- [ ] Alle Header-Komponenten als Heroes generiert
+- [ ] Hero-Typen korrekt erkannt
+- [ ] Conditional Fields Config erstellt
+- [ ] RenderHero.tsx generiert
+- [ ] In Pages Collection integriert
+- [ ] Im Admin-Panel: Felder ändern sich bei Hero-Typ-Auswahl
+
+### Blocks:
+- [ ] Alle verbleibenden Komponenten als Blocks generiert
+- [ ] Keine Duplikate (Navbar, Footer, Heroes bereits generiert)
+- [ ] Zentrale index.ts erstellt
+- [ ] Pages Collection aktualisiert
+- [ ] PageRenderer aktualisiert
+
+### Validierung:
+- [ ] TypeScript: `npm run type-check` ✅
+- [ ] Build: `npm run build` ✅
+- [ ] Dev-Server: `npm run dev` ✅
+- [ ] Admin-Panel: Alle Komponenten sichtbar ✅
+
+---
+
+## 🚀 Verwendung
+
+**Führe diesen Master-Command aus:**
+
+```bash
+cursor> Figma zu Payload - Master Workflow
+```
+
+**Oder Schritt-für-Schritt:**
+
+```bash
+# 1. Figma Check
+cursor> Check Figma Design
+
+# 2. Design Rework  
+cursor> Design Rework from Figma
+
+# 3. Button Design
+cursor> Style Buttons from Figma
+
+# 4. Navbar
+cursor> Build Navbar from Figma
+
+# 5. Footer
+cursor> Build Footer from Figma
+
+# 6. Heroes
+cursor> Generate Heroes from Figma
+
+# 7. Blocks
+cursor> Generate Blocks from Figma
+```
+
+---
+
+## 🎯 Erfolgskriterien
+
+Nach vollständigem Workflow:
+
+✅ **ALLE** Figma-Komponenten korrekt kategorisiert  
+✅ **Navbar** als Global (Mobile + Desktop getrennt)  
+✅ **Footer** als Global (Mobile + Desktop getrennt)  
+✅ **Heroes** unter /src/heroes/ mit conditional fields  
+✅ **Blocks** unter /src/blocks/ (alle anderen Komponenten)  
+✅ **Admin-Panel** zeigt alle Komponenten korrekt  
+✅ **TypeScript** fehlerfrei  
+✅ **Build** erfolgreich  
+
+---
+
+## 💡 Wichtige Hinweise
+
+### Kategorisierung ist kritisch:
+- **KEINE** manuellen Ausschlüsse
+- Pattern-Matching für Navbar: `/nav(bar)?|navigation|menu/i`
+- Pattern-Matching für Footer: `/footer|fußzeile/i`
+- Pattern-Matching für Heroes: `/header|hero|banner/i`
+- Alle anderen → Blocks nach Kategorie
+
+### Conditional Fields bei Heroes:
+- Hero-Typ bestimmt sichtbare Felder
+- Implementiert über `admin.condition` in Payload
+- Beispiel: Form-Felder nur bei `heroWithForm` sichtbar
+
+### Mobile + Desktop getrennt:
+- Navbar: 2 Komponenten (DesktopNav, MobileNav)
+- Footer: 2 Komponenten (DesktopFooter, MobileFooter)
+- Responsive Breakpoints aus Figma übernehmen
+- Beide Komponenten in einer Global Config
+
+---
+
+✅ **Vollständiger Workflow für perfekte Figma → PayloadCMS Transformation!**

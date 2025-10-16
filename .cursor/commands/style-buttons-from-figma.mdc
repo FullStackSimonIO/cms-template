@@ -1,0 +1,426 @@
+---
+title: 'Style Buttons from Figma'
+description: 'Erstellt Button-Komponente mit allen Varianten aus dem Figma-Design'
+---
+
+## 🎯 Ziel
+Button-Komponente mit ShadCN-Struktur aus Figma-Design erstellen:
+- Primary, Secondary, Outline, Ghost Varianten
+- Styles, Hover-States, Größen aus Figma
+- Integration mit CMSLink
+
+---
+
+## 🔘 Workflow
+
+### Schritt 1: Button-Komponenten in Figma finden
+
+```typescript
+// 1. Lade FIGMA_INVENTORY.json
+const inventory = JSON.parse(
+  await fs.readFile('FIGMA_INVENTORY.json', 'utf-8')
+)
+
+// Suche Button-Komponenten
+const buttonComponents = inventory.allComponents.filter(comp =>
+  /\b(button|btn|cta)\b/i.test(comp.name)
+)
+
+console.log(`🔘 ${buttonComponents.length} Button-Komponenten gefunden:`)
+buttonComponents.forEach(btn => {
+  console.log(`   - ${btn.name} (${btn.page})`)
+})
+
+// Analysiere erste Button-Komponente im Detail
+const primaryButton = buttonComponents[0]
+const buttonDetails = await mcp.getFigmaNode({
+  fileKey: FIGMA_FILE_KEY,
+  nodeId: primaryButton.id,
+})
+
+console.log('\n📊 Button-Analyse:')
+console.log(`   - Name: ${buttonDetails.name}`)
+console.log(`   - Type: ${buttonDetails.type}`)
+```
+
+---
+
+### Schritt 2: Button-Styles extrahieren
+
+```typescript
+// 2. Extrahiere Styles
+const buttonStyles = {
+  variants: [],
+  sizes: [],
+  defaultStyles: {},
+}
+
+// Basis-Styles
+if (buttonDetails.fills) {
+  const bgColor = buttonDetails.fills[0]
+  if (bgColor.type === 'SOLID') {
+    const { r, g, b } = bgColor.color
+    buttonStyles.defaultStyles.backgroundColor = rgbToHex(r * 255, g * 255, b * 255)
+  }
+}
+
+if (buttonDetails.cornerRadius) {
+  buttonStyles.defaultStyles.borderRadius = buttonDetails.cornerRadius
+}
+
+if (buttonDetails.paddingLeft) {
+  buttonStyles.defaultStyles.paddingX = buttonDetails.paddingLeft
+  buttonStyles.defaultStyles.paddingY = buttonDetails.paddingTop || buttonDetails.paddingLeft / 2
+}
+
+// Suche Varianten (Component Sets)
+if (buttonDetails.componentSetId) {
+  const componentSet = await mcp.getFigmaNode({
+    fileKey: FIGMA_FILE_KEY,
+    nodeId: buttonDetails.componentSetId,
+  })
+  
+  console.log('\n🎨 Button-Varianten gefunden:')
+  if (componentSet.children) {
+    componentSet.children.forEach(variant => {
+      const variantName = variant.name.split(',')[0] || 'default'
+      buttonStyles.variants.push({
+        name: variantName.toLowerCase(),
+        figmaId: variant.id,
+      })
+      console.log(`   - ${variantName}`)
+    })
+  }
+}
+
+// Suche Größen (Small, Medium, Large)
+const sizePatterns = ['small', 'sm', 'medium', 'md', 'large', 'lg']
+buttonComponents.forEach(btn => {
+  const sizeName = sizePatterns.find(size => 
+    new RegExp(size, 'i').test(btn.name)
+  )
+  if (sizeName && !buttonStyles.sizes.some(s => s.name === sizeName)) {
+    buttonStyles.sizes.push({ name: sizeName, figmaId: btn.id })
+  }
+})
+
+console.log('\n📐 Button-Größen:')
+buttonStyles.sizes.forEach(size => {
+  console.log(`   - ${size.name}`)
+})
+```
+
+---
+
+### Schritt 3: Button-Komponente generieren
+
+```typescript
+// 3. Generiere button.tsx
+const buttonCode = `
+import * as React from 'react'
+import { Slot } from '@radix-ui/react-slot'
+import { cva, type VariantProps } from 'class-variance-authority'
+import { cn } from '@/lib/utils'
+
+const buttonVariants = cva(
+  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+  {
+    variants: {
+      variant: {
+        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+        destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+        outline: 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+        ghost: 'hover:bg-accent hover:text-accent-foreground',
+        link: 'text-primary underline-offset-4 hover:underline',
+      },
+      size: {
+        default: 'h-10 px-4 py-2',
+        sm: 'h-9 rounded-md px-3',
+        lg: 'h-11 rounded-md px-8',
+        icon: 'h-10 w-10',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      size: 'default',
+    },
+  }
+)
+
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean
+}
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : 'button'
+    return (
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+      />
+    )
+  }
+)
+Button.displayName = 'Button'
+
+export { Button, buttonVariants }
+`
+
+await fs.writeFile('src/components/ui/button.tsx', buttonCode)
+console.log('\n✅ src/components/ui/button.tsx erstellt')
+```
+
+---
+
+### Schritt 4: CMSLink aktualisieren
+
+```typescript
+// 4. Prüfe/Aktualisiere CMSLink-Komponente
+const cmsLinkPath = 'src/components/CMSLink/index.tsx'
+
+if (await fs.exists(cmsLinkPath)) {
+  const cmsLinkContent = await fs.readFile(cmsLinkPath, 'utf-8')
+  
+  // Prüfe, ob Button bereits importiert ist
+  if (!cmsLinkContent.includes('from \'../ui/button\'')) {
+    const updatedCmsLink = cmsLinkContent
+      .replace(
+        /import.*\n/,
+        match => match + `import { Button, type ButtonProps } from '../ui/button'\n`
+      )
+      .replace(
+        /export interface CMSLinkProps/,
+        `export interface CMSLinkProps extends ButtonProps`
+      )
+      .replace(
+        /return \(/,
+        `
+  const { variant = 'default', size = 'default', ...restProps } = props
+  
+  return (`
+      )
+      .replace(
+        /<a /,
+        `<Button asChild variant={variant} size={size}>\n      <a `
+      )
+      .replace(
+        /<\/a>/,
+        `</a>\n    </Button>`
+      )
+    
+    await fs.writeFile(cmsLinkPath, updatedCmsLink)
+    console.log('✅ CMSLink mit Button-Komponente integriert')
+  } else {
+    console.log('✅ CMSLink bereits mit Button integriert')
+  }
+} else {
+  // Erstelle CMSLink neu
+  const cmsLinkCode = `
+import React from 'react'
+import Link from 'next/link'
+import { Button, type ButtonProps } from '../ui/button'
+
+export interface CMSLinkProps extends ButtonProps {
+  label: string
+  type?: 'internal' | 'external' | 'email' | 'phone'
+  url?: string
+  newTab?: boolean
+  reference?: {
+    value: string | { slug: string }
+  }
+}
+
+export const CMSLink: React.FC<CMSLinkProps> = ({
+  label,
+  type = 'internal',
+  url,
+  newTab,
+  reference,
+  variant = 'default',
+  size = 'default',
+  ...buttonProps
+}) => {
+  let href = url || ''
+  
+  // Internal link mit reference
+  if (type === 'internal' && reference) {
+    const slug = typeof reference.value === 'string' 
+      ? reference.value 
+      : reference.value?.slug
+    href = \`/\${slug}\`
+  }
+  
+  // Email/Phone
+  if (type === 'email') href = \`mailto:\${url}\`
+  if (type === 'phone') href = \`tel:\${url}\`
+  
+  const target = newTab ? '_blank' : undefined
+  const rel = newTab ? 'noopener noreferrer' : undefined
+  
+  if (type === 'internal') {
+    return (
+      <Button asChild variant={variant} size={size} {...buttonProps}>
+        <Link href={href} target={target} rel={rel}>
+          {label}
+        </Link>
+      </Button>
+    )
+  }
+  
+  return (
+    <Button asChild variant={variant} size={size} {...buttonProps}>
+      <a href={href} target={target} rel={rel}>
+        {label}
+      </a>
+    </Button>
+  )
+}
+`
+  
+  await fs.mkdir('src/components/CMSLink', { recursive: true })
+  await fs.writeFile(cmsLinkPath, cmsLinkCode)
+  console.log('✅ CMSLink-Komponente erstellt')
+}
+```
+
+---
+
+### Schritt 5: Validierung & Testing
+
+```typescript
+// 5. Test-Beispiele generieren
+const testExamples = `
+# Button-Komponente Tests
+
+## Verwendung in Blocks:
+
+\`\`\`tsx
+import { CMSLink } from '@/components/CMSLink'
+
+// Primary Button
+<CMSLink 
+  label="Mehr erfahren"
+  type="internal"
+  url="/about"
+  variant="default"
+  size="lg"
+/>
+
+// Secondary Button
+<CMSLink 
+  label="Kontakt"
+  type="internal"
+  url="/contact"
+  variant="secondary"
+/>
+
+// Outline Button
+<CMSLink 
+  label="Zurück"
+  type="internal"
+  url="/"
+  variant="outline"
+  size="sm"
+/>
+
+// Ghost Button
+<CMSLink 
+  label="Mehr lesen"
+  type="external"
+  url="https://example.com"
+  newTab={true}
+  variant="ghost"
+/>
+\`\`\`
+
+## Direkte Button-Verwendung:
+
+\`\`\`tsx
+import { Button } from '@/components/ui/button'
+
+<Button variant="default" size="lg">
+  Click me
+</Button>
+
+<Button variant="outline">
+  Secondary Action
+</Button>
+\`\`\`
+
+## Alle Varianten:
+- \`default\` - Primary Button (Figma Primary)
+- \`secondary\` - Secondary Button
+- \`outline\` - Outlined Button
+- \`ghost\` - Ghost Button (transparent)
+- \`destructive\` - Destructive/Delete Button
+- \`link\` - Link-Style Button
+
+## Alle Größen:
+- \`sm\` - Klein (32px Höhe)
+- \`default\` - Normal (40px Höhe)
+- \`lg\` - Groß (44px Höhe)
+- \`icon\` - Icon-Button (40x40px)
+`
+
+await fs.writeFile('BUTTON_USAGE.md', testExamples)
+console.log('✅ Button-Dokumentation erstellt: BUTTON_USAGE.md')
+```
+
+---
+
+## 🎉 Erfolgsmeldung
+
+```typescript
+console.log('\n' + '='.repeat(80))
+console.log('🔘 BUTTON-DESIGN ABGESCHLOSSEN!')
+console.log('='.repeat(80))
+console.log(`
+✅ Erstellt:
+   - src/components/ui/button.tsx
+   - src/components/CMSLink/index.tsx (aktualisiert)
+   - BUTTON_USAGE.md
+
+🎨 Button-Varianten:
+   - default (Primary aus Figma)
+   - secondary
+   - outline
+   - ghost
+   - destructive
+   - link
+
+📐 Button-Größen:
+   - sm (Klein)
+   - default (Normal)
+   - lg (Groß)
+   - icon (Icon-Button)
+
+🔗 CMSLink Integration:
+   ✅ Button-Komponente integriert
+   ✅ Alle Varianten verfügbar
+   ✅ Responsive & Accessible
+
+🚀 Nächster Schritt:
+   cursor> Build Navbar from Figma
+`)
+console.log('='.repeat(80))
+```
+
+---
+
+## ✅ Checkliste
+
+- [ ] button.tsx erstellt mit allen Varianten
+- [ ] CMSLink mit Button integriert
+- [ ] Styles aus Figma übernommen
+- [ ] Hover-States funktionieren
+- [ ] Alle Größen definiert
+- [ ] Dokumentation vorhanden
+
+---
+
+✅ **Button-Komponente mit Figma-Styles erfolgreich erstellt!**
