@@ -6,10 +6,15 @@ Dieses Verzeichnis enthält optimierte Cursor MDC-Befehle für die systematische
 
 ## 📋 Übersicht
 
-### Anzahl der Komponenten
-- **26 Kategorien**
-- **1243+ Relume-Komponenten**
-- **3729+ zu generierende Dateien**
+### Anzahl der Komponenten (für Pages Collection)
+- **20 Kategorien** (für statische Pages)
+- **1071 Relume-Komponenten**
+- **3213 zu generierende Dateien** (1071 × 3)
+
+### Ausgeschlossen (für separate Module)
+- **6 Kategorien** (Blog, Career, Events, Portfolio)
+- **172 Komponenten** für dynamische Detail-Seiten
+- Separate Prompts für Blog-Modul, Service-Modul, Projekt-Modul
 
 ---
 
@@ -29,7 +34,7 @@ Dieser Command orchestriert den kompletten Workflow:
 5. ✅ TypeScript validieren
 6. ✅ Dokumentation erstellen
 
-**Geschätzte Dauer:** 20-25 Minuten
+**Geschätzte Dauer:** 15-18 Minuten (weniger Komponenten durch Fokus auf Pages)
 
 ---
 
@@ -41,14 +46,19 @@ Dieser Command orchestriert den kompletten Workflow:
 **Zweck:** Orchestriert die vollständige Bulk-Generierung aller Blocks
 **Verwendet:** Batch-basierte Generierung mit Priorisierung
 **Output:** 
-- 3729 Dateien (Component.tsx, config.ts, index.ts)
-- Automatische Registrierung
+- 3213 Dateien (Component.tsx, config.ts, index.ts)
+- Automatische Registrierung in Pages Collection
 - Vollständige Dokumentation
 
 **Batch-Struktur:**
 - **Batch 1 (High Priority):** Layout, Header, CTA, Testimonials, Contact, Pricing, Navbar, Footer (876 Komponenten)
-- **Batch 2 (Medium Priority):** Blog, MultistepForms, Gallery, Team, Banners, FAQ, ContactModal, BlogPostHeader (204 Komponenten)
-- **Batch 3 (Low Priority):** Events, Career, Portfolio, Timelines, Comparison, Logo, Loader, etc. (163 Komponenten)
+- **Batch 2 (Medium Priority):** MultistepForms, Gallery, Team, Banners, FAQ, ContactModal (131 Komponenten)
+- **Batch 3 (Low Priority):** Timelines, Comparison, EventHeaderItems, EventHeaders, Logo, Loader (64 Komponenten)
+
+**Ausgeschlossen für separate Module:**
+- Blog, BlogPostHeader → Blog-Modul (73 Komponenten)
+- Career → Service-/Angebotsmodul (27 Komponenten)
+- Events, Portfolio, PortfolioHeader → Projektmodul (72 Komponenten)
 
 ---
 
@@ -139,36 +149,43 @@ Dieser Command orchestriert den kompletten Workflow:
 
 ## 📊 Kategorien-Übersicht
 
-| Kategorie | Anzahl | Priorität | Beschreibung |
-|-----------|--------|-----------|--------------|
-| **Layout** | 527 | High | Basis-Layouts, Container, Grids |
-| **Header** | 152 | High | Hero Sections, Header-Varianten |
-| **Blog** | 68 | Medium | Blog-Grids, Post-Cards |
-| **CTA** | 58 | High | Call-to-Action Sections |
-| **MultistepForms** | 46 | Medium | Mehrstufige Formulare |
-| **Testimonials** | 43 | High | Kundenbewertungen |
-| **Events** | 37 | Medium | Event-Listings |
-| **Contact** | 30 | High | Kontaktformulare |
-| **Career** | 27 | Low | Karriere-Seiten |
-| **Gallery** | 27 | Medium | Bild-/Video-Galerien |
-| **Pricing** | 27 | High | Preistabellen |
-| **Portfolio** | 23 | Medium | Portfolio-Showcases |
-| **Navbar** | 22 | High | Navigationsleisten |
-| **Team** | 22 | Medium | Team-Sections |
-| **Timelines** | 21 | Low | Zeitstrahl-Darstellungen |
-| **Footer** | 17 | High | Footer-Varianten |
-| **Banners** | 16 | Medium | Notification-Banner |
-| **Comparison** | 15 | Low | Vergleichstabellen |
-| **FAQ** | 14 | Medium | FAQ-Sections |
-| **PortfolioHeader** | 12 | Low | Portfolio-Header |
-| **EventHeaderItems** | 11 | Low | Event-Header Elemente |
-| **EventHeaders** | 6 | Low | Event-Hero Sections |
-| **ContactModal** | 6 | Medium | Kontakt-Modals |
-| **Logo** | 6 | Low | Logo-Displays |
-| **BlogPostHeader** | 5 | Medium | Blog-Post Header |
-| **Loader** | 5 | Low | Loading States |
+| Kategorie | Anzahl | Priorität | Beschreibung | Verwendung |
+|-----------|--------|-----------|--------------|------------|
+| **Layout** | 527 | High | Basis-Layouts, Container, Grids | Alle statischen Pages |
+| **Header** | 152 | High | Hero Sections, Header-Varianten | Homepage, Landing Pages |
+| **CTA** | 58 | High | Call-to-Action Sections | Conversions, Lead-Gen |
+| **Testimonials** | 43 | High | Kundenbewertungen | Social Proof |
+| **Contact** | 30 | High | Kontaktformulare | Kontakt-Seite |
+| **Pricing** | 27 | High | Preistabellen | Pricing-Seite |
+| **Navbar** | 22 | High | Navigationsleisten | Globale Navigation |
+| **Footer** | 17 | High | Footer-Varianten | Alle Pages |
+| **MultistepForms** | 46 | Medium | Mehrstufige Formulare | Komplexe Forms |
+| **Gallery** | 27 | Medium | Bild-/Video-Galerien | Portfolio-Übersicht |
+| **Team** | 22 | Medium | Team-Sections | Team-Seite |
+| **Banners** | 16 | Medium | Notification-Banner | Announcements |
+| **FAQ** | 14 | Medium | FAQ-Sections | Support-Seite |
+| **ContactModal** | 6 | Medium | Kontakt-Modals | Quick Contact |
+| **Timelines** | 21 | Low | Zeitstrahl-Darstellungen | About, History |
+| **Comparison** | 15 | Low | Vergleichstabellen | Feature-Vergleich |
+| **EventHeaderItems** | 11 | Low | Event-Header Elemente | Event-Übersicht |
+| **EventHeaders** | 6 | Low | Event-Hero Sections | Event-Übersicht |
+| **Logo** | 6 | Low | Logo-Displays | Trust-Badges |
+| **Loader** | 5 | Low | Loading States | Loading-Feedback |
 
-**Gesamt:** 1243+ Komponenten
+**Gesamt für Pages Collection:** 1071 Komponenten
+
+### ❌ Ausgeschlossene Kategorien (Separate Module)
+
+| Kategorie | Anzahl | Modul | Routes |
+|-----------|--------|-------|--------|
+| **Blog** | 68 | Blog-Modul | `/blog/[slug]` |
+| **BlogPostHeader** | 5 | Blog-Modul | `/blog/[slug]` |
+| **Career** | 27 | Service-Modul | `/angebote/[slug]` |
+| **Events** | 37 | Projekt-Modul | `/projekte/[slug]` |
+| **Portfolio** | 23 | Projekt-Modul | `/projekte/[slug]` |
+| **PortfolioHeader** | 12 | Projekt-Modul | `/projekte/[slug]` |
+
+**Gesamt ausgeschlossen:** 172 Komponenten (für separate Prompts)
 
 ---
 

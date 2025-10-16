@@ -8,7 +8,21 @@ Generiere ALLE verfügbaren Komponenten aus Figma und dem Relume-Repository als 
 
 ---
 
-## 📊 Komponenten-Kategorien (26 Kategorien, 1243+ Komponenten)
+## 📊 Komponenten-Kategorien (20 Kategorien, 1071+ Komponenten)
+
+**Nur für statische Pages über Pages Collection!**
+
+### ❌ Ausgeschlossene Kategorien (für separate Module):
+- **Blog** (68) → Eigenes Blog-Modul mit dynamischen Routes
+- **BlogPostHeader** (5) → Blog-spezifisch
+- **Career** (27) → Service-/Angebotsmodul
+- **Events** (37) → Projektmodul
+- **Portfolio** (23) → Projektmodul
+- **PortfolioHeader** (12) → Projektmodul
+
+**Neue Gesamt-Anzahl:** 1071 Komponenten (1243 - 172 = 1071)
+
+---
 
 ### 1. **Layout Components** (527 Komponenten)
 Die größte Kategorie mit grundlegenden Layout-Strukturen:
@@ -25,16 +39,7 @@ Hero Sections und Header-Varianten:
 - Hero mit Carousel
 - Animated Headers
 
-### 3. **Blog Components** (68 Komponenten)
-Blog-spezifische Layouts:
-- Blog-Grid (2, 3, 4 Spalten)
-- Featured Posts
-- Blog-Sidebar
-- Author Cards
-- Category Navigation
-- Related Posts
-
-### 4. **CTA Components** (58 Komponenten)
+### 3. **CTA Components** (58 Komponenten)
 Call-to-Action Sections:
 - CTA mit Buttons
 - Newsletter Signup
@@ -75,15 +80,7 @@ Kontakt-Sections:
 - Team Contact Cards
 - Chat Integration
 
-### 9. **Career** (27 Komponenten)
-Karriere-Seiten:
-- Job Listings
-- Application Forms
-- Team Culture
-- Benefits Overview
-- Application Process
-
-### 10. **Gallery** (27 Komponenten)
+### 7. **Gallery** (27 Komponenten)
 Bild- und Video-Galerien:
 - Masonry Grid
 - Lightbox
@@ -91,7 +88,7 @@ Bild- und Video-Galerien:
 - Video Gallery
 - Portfolio Grid
 
-### 11. **Pricing** (27 Komponenten)
+### 8. **Pricing** (27 Komponenten)
 Preistabellen und Pakete:
 - 2-3 Column Pricing
 - Feature Comparison
@@ -99,15 +96,7 @@ Preistabellen und Pakete:
 - FAQ Integration
 - Trial Buttons
 
-### 12. **Portfolio** (23 Komponenten)
-Portfolio-Showcases:
-- Case Studies
-- Project Grid
-- Filterable Portfolio
-- Detail Pages
-- Client Logos
-
-### 13. **Navbar** (22 Komponenten)
+### 9. **Navbar** (22 Komponenten)
 Navigationsleisten:
 - Desktop Navigation
 - Mobile Menu
@@ -116,7 +105,7 @@ Navigationsleisten:
 - Transparent Navbar
 - Search Integration
 
-### 14. **Team** (22 Komponenten)
+### 10. **Team** (22 Komponenten)
 Team-Sections:
 - Team Grid
 - Team Member Cards
@@ -124,7 +113,7 @@ Team-Sections:
 - Role Badges
 - Team Bios
 
-### 15. **Timelines** (21 Komponenten)
+### 11. **Timelines** (21 Komponenten)
 Zeitstrahl-Darstellungen:
 - Vertical Timeline
 - Horizontal Timeline
@@ -132,7 +121,7 @@ Zeitstrahl-Darstellungen:
 - Process Steps
 - Milestone Tracker
 
-### 16. **Footer** (17 Komponenten)
+### 12. **Footer** (17 Komponenten)
 Footer-Varianten:
 - Multi-Column Footer
 - Simple Footer
@@ -140,7 +129,7 @@ Footer-Varianten:
 - Social Links
 - Copyright Info
 
-### 17. **Banners** (16 Komponenten)
+### 13. **Banners** (16 Komponenten)
 Notification und Promo-Banner:
 - Cookie Banner
 - Announcement Bar
@@ -148,7 +137,7 @@ Notification und Promo-Banner:
 - Countdown Banner
 - Dismissible Alerts
 
-### 18. **Comparison** (15 Komponenten)
+### 14. **Comparison** (15 Komponenten)
 Vergleichstabellen:
 - Feature Comparison
 - Product Comparison
@@ -156,7 +145,7 @@ Vergleichstabellen:
 - Pros/Cons
 - Side-by-Side
 
-### 19. **FAQ** (14 Komponenten)
+### 15. **FAQ** (14 Komponenten)
 FAQ-Sections:
 - Accordion-Style
 - Tab-Navigation
@@ -164,44 +153,30 @@ FAQ-Sections:
 - Category-Filter
 - Expandable Items
 
-### 20. **PortfolioHeader** (12 Komponenten)
-Portfolio-spezifische Header:
-- Project Hero
-- Case Study Header
-- Client Logo Display
-- Project Meta Info
-
-### 21. **EventHeaderItems** (11 Komponenten)
-Event-Header Elemente:
+### 16. **EventHeaderItems** (11 Komponenten)
+Event-Header Elemente (für statische Übersichtsseiten):
 - Date Display
 - Location Info
 - Speaker Cards
 - Countdown Timer
 
-### 22. **EventHeaders** (6 Komponenten)
-Event-spezifische Hero Sections
+### 17. **EventHeaders** (6 Komponenten)
+Event-Hero Sections (für statische Übersichtsseiten)
 
-### 23. **ContactModal** (6 Komponenten)
+### 18. **ContactModal** (6 Komponenten)
 Modal-Dialoge für Kontakt:
 - Popup Forms
 - Quick Contact
 - Callback Request
 
-### 24. **Logo** (6 Komponenten)
+### 19. **Logo** (6 Komponenten)
 Logo-Displays:
 - Client Logos
 - Partner Logos
 - Trust Badges
 - Logo Carousel
 
-### 25. **BlogPostHeader** (5 Komponenten)
-Blog-Post Header:
-- Featured Image
-- Author Info
-- Reading Time
-- Category Badge
-
-### 26. **Loader** (5 Komponenten)
+### 20. **Loader** (5 Komponenten)
 Loading States:
 - Spinner
 - Skeleton Screens
@@ -214,14 +189,18 @@ Loading States:
 
 ### Phase 1: Vorbereitung & Analyse
 ```typescript
-// 1. Scanne alle Relume-Komponenten
+// 1. Scanne nur Relume-Komponenten für statische Pages
 const relumeCategories = [
-  'Layout', 'Header', 'Blog', 'CTA', 'MultistepForms', 'Testimonials',
-  'Events', 'Contact', 'Career', 'Gallery', 'Pricing', 'Portfolio',
-  'Navbar', 'Team', 'Timelines', 'Footer', 'Banners', 'Comparison',
-  'FAQ', 'PortfolioHeader', 'EventHeaderItems', 'EventHeaders',
-  'ContactModal', 'Logo', 'BlogPostHeader', 'Loader'
+  'Layout', 'Header', 'CTA', 'MultistepForms', 'Testimonials',
+  'Contact', 'Gallery', 'Pricing', 'Navbar', 'Team', 'Timelines', 
+  'Footer', 'Banners', 'Comparison', 'FAQ', 'EventHeaderItems', 
+  'EventHeaders', 'ContactModal', 'Logo', 'Loader'
 ]
+
+// ❌ Ausgeschlossen (separate Module):
+// 'Blog', 'BlogPostHeader' → Blog-Modul
+// 'Career' → Service-/Angebotsmodul  
+// 'Events', 'Portfolio', 'PortfolioHeader' → Projektmodul
 
 // 2. Erfasse alle TSX-Dateien pro Kategorie
 for (const category of relumeCategories) {

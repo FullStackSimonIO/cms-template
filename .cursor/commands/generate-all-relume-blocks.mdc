@@ -41,19 +41,16 @@ npm run type-check
 
 #### Schritt 1.1: Relume-Struktur scannen
 ```typescript
+// Nur Kategorien für statische Pages (Pages Collection)
 const categories = {
   'Layout': { count: 527, priority: 'high' },
   'Header': { count: 152, priority: 'high' },
-  'Blog': { count: 68, priority: 'medium' },
   'CTA': { count: 58, priority: 'high' },
   'MultistepForms': { count: 46, priority: 'medium' },
   'Testimonials': { count: 43, priority: 'high' },
-  'Events': { count: 37, priority: 'medium' },
   'Contact': { count: 30, priority: 'high' },
-  'Career': { count: 27, priority: 'low' },
   'Gallery': { count: 27, priority: 'medium' },
   'Pricing': { count: 27, priority: 'high' },
-  'Portfolio': { count: 23, priority: 'medium' },
   'Navbar': { count: 22, priority: 'high' },
   'Team': { count: 22, priority: 'medium' },
   'Timelines': { count: 21, priority: 'low' },
@@ -61,19 +58,26 @@ const categories = {
   'Banners': { count: 16, priority: 'medium' },
   'Comparison': { count: 15, priority: 'low' },
   'FAQ': { count: 14, priority: 'medium' },
-  'PortfolioHeader': { count: 12, priority: 'low' },
   'EventHeaderItems': { count: 11, priority: 'low' },
   'EventHeaders': { count: 6, priority: 'low' },
   'ContactModal': { count: 6, priority: 'medium' },
   'Logo': { count: 6, priority: 'low' },
-  'BlogPostHeader': { count: 5, priority: 'medium' },
   'Loader': { count: 5, priority: 'low' },
 }
 
+// ❌ AUSGESCHLOSSEN (separate Module):
+// 'Blog': 68 → Blog-Modul mit dynamischen Routes (/blog/[slug])
+// 'BlogPostHeader': 5 → Blog-Modul
+// 'Career': 27 → Service-/Angebotsmodul (/angebote/[slug])
+// 'Events': 37 → Projektmodul (/projekte/[slug])
+// 'Portfolio': 23 → Projektmodul
+// 'PortfolioHeader': 12 → Projektmodul
+
 console.log('📊 Analyse abgeschlossen:')
-console.log(`   - 26 Kategorien`)
-console.log(`   - 1243 Komponenten`)
-console.log(`   - 3729 zu erstellende Dateien`)
+console.log(`   - 20 Kategorien (für statische Pages)`)
+console.log(`   - 1071 Komponenten`)
+console.log(`   - 3213 zu erstellende Dateien`)
+console.log(`   - 172 Komponenten ausgeschlossen (separate Module)`)
 ```
 
 #### Schritt 1.2: Priorisierung
@@ -119,6 +123,7 @@ Wir generieren in Batches, um Token-Limits und Performance zu optimieren.
 **Kategorien:** Layout, Header, CTA, Testimonials, Contact, Pricing, Navbar, Footer
 **Komponenten-Anzahl:** 527 + 152 + 58 + 43 + 30 + 27 + 22 + 17 = 876
 **Geschätzte Dauer:** ~10 Minuten
+**Verwendung:** Basis-Layouts, Hero-Sections, Conversions, Navigation
 
 ```typescript
 async function generateBatch1() {
@@ -498,15 +503,16 @@ export { {ComponentName}Block } from './config'
 ---
 
 #### Batch 2: Content Components (Medium Priority)
-**Kategorien:** Blog, MultistepForms, Gallery, Team, Banners, FAQ, ContactModal, BlogPostHeader
-**Komponenten-Anzahl:** 68 + 46 + 27 + 22 + 16 + 14 + 6 + 5 = 204
-**Geschätzte Dauer:** ~5 Minuten
+**Kategorien:** MultistepForms, Gallery, Team, Banners, FAQ, ContactModal
+**Komponenten-Anzahl:** 46 + 27 + 22 + 16 + 14 + 6 = 131
+**Geschätzte Dauer:** ~3 Minuten
+**Verwendung:** Formulare, Galerien, Team-Seiten, Benachrichtigungen
 
 ```typescript
 async function generateBatch2() {
   const mediumPriorityCategories = [
-    'Blog', 'MultistepForms', 'Gallery', 'Team', 
-    'Banners', 'FAQ', 'ContactModal', 'BlogPostHeader'
+    'MultistepForms', 'Gallery', 'Team', 
+    'Banners', 'FAQ', 'ContactModal'
   ]
   
   for (const category of mediumPriorityCategories) {
@@ -519,16 +525,16 @@ async function generateBatch2() {
 ---
 
 #### Batch 3: Specialized Components (Low Priority)
-**Kategorien:** Events, Career, Portfolio, PortfolioHeader, EventHeaderItems, EventHeaders, Timelines, Comparison, Logo, Loader
-**Komponenten-Anzahl:** 37 + 27 + 23 + 12 + 11 + 6 + 21 + 15 + 6 + 5 = 163
-**Geschätzte Dauer:** ~5 Minuten
+**Kategorien:** Timelines, Comparison, EventHeaderItems, EventHeaders, Logo, Loader
+**Komponenten-Anzahl:** 21 + 15 + 11 + 6 + 6 + 5 = 64
+**Geschätzte Dauer:** ~2 Minuten
+**Verwendung:** Spezielle Darstellungen, Vergleiche, Event-Übersichten
 
 ```typescript
 async function generateBatch3() {
   const lowPriorityCategories = [
-    'Events', 'Career', 'Portfolio', 'PortfolioHeader',
-    'EventHeaderItems', 'EventHeaders', 'Timelines', 
-    'Comparison', 'Logo', 'Loader'
+    'Timelines', 'Comparison', 'EventHeaderItems', 
+    'EventHeaders', 'Logo', 'Loader'
   ]
   
   for (const category of lowPriorityCategories) {
@@ -558,15 +564,15 @@ export { Header1, Header1Block } from './Header/Header1'
 export { Header2, Header2Block } from './Header/Header2'
 // ... (150 weitere)
 
-// Blog Blocks (68)
-export { Blog1, Blog1Block } from './Blog/Blog1'
-// ... (67 weitere)
-
 // CTA Blocks (58)
 export { CTA1, CTA1Block } from './CTA/CTA1'
 // ... (57 weitere)
 
-// ... (alle anderen Kategorien)
+// MultistepForms Blocks (46)
+export { Form1, Form1Block } from './MultistepForms/Form1'
+// ... (45 weitere)
+
+// ... (alle anderen 20 Kategorien, OHNE Blog, Career, Events, Portfolio)
 ```
 
 #### Schritt 3.2: Pages Collection aktualisieren
@@ -785,31 +791,40 @@ Alle Blocks können angepasst werden unter:
 🎉 ERFOLG! Vollständige Block-Generierung abgeschlossen!
 
 📊 Zusammenfassung:
-   ✅ 26 Kategorien verarbeitet
-   ✅ 1243 Komponenten konvertiert
-   ✅ 3729 Dateien erstellt
+   ✅ 20 Kategorien verarbeitet (für statische Pages)
+   ✅ 1071 Komponenten konvertiert
+   ✅ 3213 Dateien erstellt
    ✅ Alle Blocks registriert
    ✅ TypeScript-Validierung bestanden
    ✅ Build erfolgreich
    ✅ Deutsche UX implementiert
 
+❌ Ausgeschlossen (separate Module):
+   - Blog (68) → Blog-Modul
+   - BlogPostHeader (5) → Blog-Modul
+   - Career (27) → Service-/Angebotsmodul
+   - Events (37) → Projektmodul
+   - Portfolio (23) → Projektmodul
+   - PortfolioHeader (12) → Projektmodul
+   = 172 Komponenten für separate Module reserviert
+
 📁 Generierte Dateien:
-   - src/blocks/{Category}/{ComponentName}/Component.tsx (1243x)
-   - src/blocks/{Category}/{ComponentName}/config.ts (1243x)
-   - src/blocks/{Category}/{ComponentName}/index.ts (1243x)
+   - src/blocks/{Category}/{ComponentName}/Component.tsx (1071x)
+   - src/blocks/{Category}/{ComponentName}/config.ts (1071x)
+   - src/blocks/{Category}/{ComponentName}/index.ts (1071x)
    - src/blocks/index.ts (zentrale Exports)
    - BLOCKS_DOCUMENTATION.md (Übersicht)
 
 🚀 Nächste Schritte:
    1. Öffne http://localhost:3000/admin
-   2. Erstelle eine neue Page
-   3. Wähle aus 1243+ Blocks
+   2. Erstelle eine neue Page (z.B. /angebote, /team, /preise)
+   3. Wähle aus 1071 Blocks für statische Seiten
    4. Baue deine Website!
 
 💡 Pro-Tipp:
-   - Nutze die Suche im Admin-Panel
-   - Gruppierung nach Kategorien nutzen
-   - Preview-Funktion verwenden
+   - /angebote → Pages Collection (mit CTA, Pricing, etc.)
+   - /angebote/rasen-mähen → Separates Modul (später)
+   - Nutze die Kategorisierung im Admin-Panel
 
 ✅ Bereit für Production!
 ```

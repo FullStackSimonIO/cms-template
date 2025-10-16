@@ -25,35 +25,36 @@ alwaysApply: true
 
 Alle Blocks werden nach Kategorien organisiert (basierend auf Relume-Struktur):
 
-### Haupt-Kategorien (26):
+### Kategorien für Pages Collection (20):
 1. **Layout** (527 Komponenten) - Basis-Layouts, Container, Grids
 2. **Header** (152 Komponenten) - Hero Sections, Hero-Varianten
-3. **Blog** (68 Komponenten) - Blog-Grids, Post-Cards
-4. **CTA** (58 Komponenten) - Call-to-Action Sections
-5. **MultistepForms** (46 Komponenten) - Mehrstufige Formulare
-6. **Testimonials** (43 Komponenten) - Kundenbewertungen
-7. **Events** (37 Komponenten) - Event-Listings
-8. **Contact** (30 Komponenten) - Kontaktformulare
-9. **Career** (27 Komponenten) - Karriere-Seiten
-10. **Gallery** (27 Komponenten) - Bild-/Video-Galerien
-11. **Pricing** (27 Komponenten) - Preistabellen
-12. **Portfolio** (23 Komponenten) - Portfolio-Showcases
-13. **Navbar** (22 Komponenten) - Navigationsleisten
-14. **Team** (22 Komponenten) - Team-Sections
-15. **Timelines** (21 Komponenten) - Zeitstrahl-Darstellungen
-16. **Footer** (17 Komponenten) - Footer-Varianten
-17. **Banners** (16 Komponenten) - Notification-Banner
-18. **Comparison** (15 Komponenten) - Vergleichstabellen
-19. **FAQ** (14 Komponenten) - FAQ-Sections
-20. **PortfolioHeader** (12 Komponenten) - Portfolio-Header
-21. **EventHeaderItems** (11 Komponenten) - Event-Header Elemente
-22. **EventHeaders** (6 Komponenten) - Event-Hero Sections
-23. **ContactModal** (6 Komponenten) - Kontakt-Modals
-24. **Logo** (6 Komponenten) - Logo-Displays
-25. **BlogPostHeader** (5 Komponenten) - Blog-Post Header
-26. **Loader** (5 Komponenten) - Loading States
+3. **CTA** (58 Komponenten) - Call-to-Action Sections
+4. **MultistepForms** (46 Komponenten) - Mehrstufige Formulare
+5. **Testimonials** (43 Komponenten) - Kundenbewertungen
+6. **Contact** (30 Komponenten) - Kontaktformulare
+7. **Gallery** (27 Komponenten) - Bild-/Video-Galerien
+8. **Pricing** (27 Komponenten) - Preistabellen
+9. **Navbar** (22 Komponenten) - Navigationsleisten
+10. **Team** (22 Komponenten) - Team-Sections
+11. **Timelines** (21 Komponenten) - Zeitstrahl-Darstellungen
+12. **Footer** (17 Komponenten) - Footer-Varianten
+13. **Banners** (16 Komponenten) - Notification-Banner
+14. **Comparison** (15 Komponenten) - Vergleichstabellen
+15. **FAQ** (14 Komponenten) - FAQ-Sections
+16. **EventHeaderItems** (11 Komponenten) - Event-Header (Übersicht)
+17. **EventHeaders** (6 Komponenten) - Event-Hero (Übersicht)
+18. **ContactModal** (6 Komponenten) - Kontakt-Modals
+19. **Logo** (6 Komponenten) - Logo-Displays
+20. **Loader** (5 Komponenten) - Loading States
 
-**Gesamt:** 1243+ Komponenten
+**Gesamt:** 1071 Komponenten
+
+### ❌ Ausgeschlossen (Separate Module):
+- **Blog** (68) + **BlogPostHeader** (5) → Blog-Modul mit `/blog/[slug]`
+- **Career** (27) → Service-/Angebotsmodul mit `/angebote/[slug]`
+- **Events** (37) + **Portfolio** (23) + **PortfolioHeader** (12) → Projektmodul mit `/projekte/[slug]`
+
+**Ausgeschlossen:** 172 Komponenten (für separate Prompts)
 
 ## Entwicklungsworkflow
 
