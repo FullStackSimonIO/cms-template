@@ -1,11 +1,11 @@
 ---
-title: 'Generate ALL Relume Blocks - Master Orchestrator'
-description: 'Orchestriert die vollständige Bulk-Generierung aller 1243+ Relume-Komponenten als PayloadCMS Blocks mit automatischer Registrierung und deutscher UX.'
+title: 'Generate Blocks from Figma - Master Orchestrator'
+description: 'Orchestriert die Generierung von PayloadCMS Blocks basierend auf den tatsächlich im Figma verwendeten Komponenten.'
 ---
 
-## 🎯 Master-Orchestrator für vollständige Block-Generierung
+## 🎯 Master-Orchestrator für intelligente Block-Generierung
 
-Dieser Command orchestriert die systematische Generierung ALLER Relume-Komponenten in einem automatisierten Workflow.
+Dieser Command orchestriert die systematische Generierung nur der **im Figma tatsächlich verwendeten** Komponenten als PayloadCMS Blocks.
 
 ---
 
@@ -13,11 +13,10 @@ Dieser Command orchestriert die systematische Generierung ALLER Relume-Komponent
 
 Vor dem Start prüfe:
 
-### 1. Relume-Komponenten verfügbar
+### 1. Figma MCP Verbindung
 ```bash
-# Zähle alle Relume TSX-Dateien
-find relume -name "*.tsx" | wc -l
-# Erwartung: 1243+
+# Teste Figma-Verbindung
+> Test Figma MCP Connection
 ```
 
 ### 2. Projektstruktur vorhanden
@@ -35,49 +34,50 @@ npm run type-check
 
 ---
 
-## 🔄 BULK-GENERIERUNG WORKFLOW
+## 🔄 INTELLIGENTE GENERIERUNG WORKFLOW
 
-### PHASE 1: Analyse & Planung (Dauer: ~2 Min)
+### PHASE 1: Figma-Analyse (Dauer: ~2-3 Min)
 
-#### Schritt 1.1: Relume-Struktur scannen
+#### Schritt 1.1: Figma-Komponenten scannen
+```bash
+> Fetch Used Figma Components
+```
+
+**Output:** `FIGMA_INVENTORY.json` mit verwendeten Komponenten
+
+#### Schritt 1.2: Inventar analysieren
 ```typescript
-// Nur Kategorien für statische Pages (Pages Collection)
-const categories = {
-  'Layout': { count: 527, priority: 'high' },
-  'Header': { count: 152, priority: 'high' },
-  'CTA': { count: 58, priority: 'high' },
-  'MultistepForms': { count: 46, priority: 'medium' },
-  'Testimonials': { count: 43, priority: 'high' },
-  'Contact': { count: 30, priority: 'high' },
-  'Gallery': { count: 27, priority: 'medium' },
-  'Pricing': { count: 27, priority: 'high' },
-  'Navbar': { count: 22, priority: 'high' },
-  'Team': { count: 22, priority: 'medium' },
-  'Timelines': { count: 21, priority: 'low' },
-  'Footer': { count: 17, priority: 'high' },
-  'Banners': { count: 16, priority: 'medium' },
-  'Comparison': { count: 15, priority: 'low' },
-  'FAQ': { count: 14, priority: 'medium' },
-  'EventHeaderItems': { count: 11, priority: 'low' },
-  'EventHeaders': { count: 6, priority: 'low' },
-  'ContactModal': { count: 6, priority: 'medium' },
-  'Logo': { count: 6, priority: 'low' },
-  'Loader': { count: 5, priority: 'low' },
+// Lade Figma Inventory
+const inventory = JSON.parse(
+  await fs.readFile('FIGMA_INVENTORY.json', 'utf-8')
+)
+
+console.log('📊 Figma Inventory geladen:')
+console.log(`   - Verwendete Komponenten: ${inventory.meta.totalUsedComponents}`)
+console.log(`   - Gemappte Komponenten: ${inventory.meta.totalMappedComponents}`)
+console.log(`   - Zu generierende Blocks: ${inventory.meta.componentsToGenerate}`)
+
+// Gruppiere nach Kategorie
+const byCategory = {}
+for (const mapping of inventory.relumeMapping) {
+  if (!byCategory[mapping.category]) {
+    byCategory[mapping.category] = []
+  }
+  byCategory[mapping.category].push(mapping)
 }
 
-// ❌ AUSGESCHLOSSEN (separate Module):
-// 'Blog': 68 → Blog-Modul mit dynamischen Routes (/blog/[slug])
-// 'BlogPostHeader': 5 → Blog-Modul
-// 'Career': 27 → Service-/Angebotsmodul (/angebote/[slug])
-// 'Events': 37 → Projektmodul (/projekte/[slug])
-// 'Portfolio': 23 → Projektmodul
-// 'PortfolioHeader': 12 → Projektmodul
+console.log('\n📦 Verteilung nach Kategorie:')
+for (const [category, mappings] of Object.entries(byCategory)) {
+  console.log(`   - ${category}: ${mappings.length} Blocks`)
+}
 
-console.log('📊 Analyse abgeschlossen:')
-console.log(`   - 20 Kategorien (für statische Pages)`)
-console.log(`   - 1071 Komponenten`)
-console.log(`   - 3213 zu erstellende Dateien`)
-console.log(`   - 172 Komponenten ausgeschlossen (separate Module)`)
+// ❌ Automatisch ausgeschlossen (nicht im Figma verwendet):
+// Blog-Komponenten, die nicht im Design vorkommen
+// Career-Komponenten, die nicht im Design vorkommen
+// etc.
+
+console.log(`\n💡 Es werden nur ${inventory.meta.componentsToGenerate} Blocks generiert`)
+console.log(`   (statt alle 1071 Relume-Templates)`)
 ```
 
 #### Schritt 1.2: Priorisierung
@@ -115,7 +115,11 @@ sortedCategories.forEach(([cat, info], idx) => {
 
 ---
 
-### PHASE 2: Batch-Generierung (Dauer: ~15-20 Min)
+### PHASE 2: Block-Generierung (Dauer: ~5-10 Min)
+
+```bash
+> Generate Blocks from Figma Inventory
+```
 
 Wir generieren in Batches, um Token-Limits und Performance zu optimieren.
 

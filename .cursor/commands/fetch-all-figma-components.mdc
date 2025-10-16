@@ -1,11 +1,11 @@
 ---
-title: 'Fetch ALL Figma Components'
-description: 'Systematische Erfassung ALLER Komponenten aus dem verbundenen Figma-File, ohne Ausschlüsse oder Limitierungen.'
+title: 'Fetch Used Figma Components'
+description: 'Systematische Erfassung aller IM FIGMA VERWENDETEN Komponenten für die Block-Generierung.'
 alwaysApply: true
 ---
 
 ## 🎯 Ziel
-Erfasse VOLLSTÄNDIG alle Komponenten, Frames und Elemente aus dem Figma-File über die MCP-Integration.
+Erfasse nur die **tatsächlich verwendeten** Komponenten aus dem Figma-Design, um gezielt nur benötigte PayloadCMS Blocks zu generieren.
 
 ---
 
@@ -49,181 +49,188 @@ console.log(`   - Last Modified: ${figmaFile.lastModified}`)
 
 ---
 
-### Phase 3: Komponenten-Inventar erstellen
+### Phase 3: Verwendete Komponenten identifizieren
 
 ```typescript
-// 3. Extrahiere ALLE Komponenten (ohne Filter!)
-const allComponents = []
+// 3. Extrahiere nur VERWENDETE Top-Level Komponenten und Instanzen
+const usedComponents = []
+const componentInstances = new Map() // Zählt Verwendung
 
-// Durchlaufe ALLE Seiten
+// Durchlaufe alle Seiten
 for (const page of figmaFile.document.children) {
   console.log(`\n📄 Scanne Seite: ${page.name}`)
   
-  // Rekursive Funktion für alle Ebenen
-  function extractComponents(node, depth = 0, parentPath = []) {
+  // Rekursive Funktion - sammelt verwendete Komponenten
+  function findUsedComponents(node, depth = 0, parentPath = []) {
     const currentPath = [...parentPath, node.name]
     
-    // Erfasse JEDEN Node-Typ
-    const component = {
-      id: node.id,
-      name: node.name,
-      type: node.type,
-      page: page.name,
-      path: currentPath.join(' > '),
-      depth: depth,
+    // Interessante Node-Typen für Blocks
+    const blockRelevantTypes = [
+      'COMPONENT',          // Komponenten-Definition
+      'COMPONENT_SET',      // Komponenten-Varianten
+      'INSTANCE',           // Komponenten-Instanz (VERWENDUNG!)
+      'FRAME'              // Container (potenzielle Sections)
+    ]
+    
+    // Nur relevante Top-Level Nodes (depth 0-2)
+    if (blockRelevantTypes.includes(node.type) && depth <= 2) {
+      const component = {
+        id: node.id,
+        name: node.name,
+        type: node.type,
+        page: page.name,
+        path: currentPath.join(' > '),
+        depth: depth,
+        
+        // Metadata
+        visible: node.visible !== false,
+        
+        // Layout
+        absoluteBoundingBox: node.absoluteBoundingBox,
+        layoutMode: node.layoutMode,
+        
+        // Figma Component-Referenz
+        componentId: node.componentId,
+        componentSetId: node.componentSetId,
+        
+        // Children
+        childrenCount: node.children?.length || 0,
+      }
       
-      // Metadata
-      visible: node.visible !== false,
-      locked: node.locked === true,
+      // Zähle Verwendung von Komponenten
+      if (node.type === 'INSTANCE' && node.componentId) {
+        const count = componentInstances.get(node.componentId) || 0
+        componentInstances.set(node.componentId, count + 1)
+      }
       
-      // Layout & Styling
-      absoluteBoundingBox: node.absoluteBoundingBox,
-      constraints: node.constraints,
-      layoutMode: node.layoutMode,
-      
-      // Figma-spezifisch
-      componentId: node.componentId,
-      componentSetId: node.componentSetId,
-      
-      // Children-Count
-      childrenCount: node.children?.length || 0,
+      // Füge zu verwendeten Komponenten hinzu
+      usedComponents.push(component)
     }
     
-    allComponents.push(component)
-    
-    // Rekursiv für alle Kinder
-    if (node.children && node.children.length > 0) {
+    // Rekursiv durch Kinder (nur bis depth 3 für Performance)
+    if (node.children && node.children.length > 0 && depth < 3) {
       for (const child of node.children) {
-        extractComponents(child, depth + 1, currentPath)
+        findUsedComponents(child, depth + 1, currentPath)
       }
     }
   }
   
   // Starte Extraktion für diese Seite
-  extractComponents(page, 0, [page.name])
+  findUsedComponents(page, 0, [page.name])
 }
 
-console.log(`\n✅ ${allComponents.length} Komponenten erfasst!`)
+console.log(`\n✅ ${usedComponents.length} verwendete Komponenten gefunden!`)
+console.log(`📊 ${componentInstances.size} eindeutige Komponenten identifiziert`)
 ```
 
 ---
 
-### Phase 4: Kategorisierung
+### Phase 4: Intelligente Kategorisierung
 
 ```typescript
-// 4. Kategorisiere Komponenten nach Typ
+// 4. Kategorisiere nur verwendete Komponenten
 const categorized = {
-  // Figma Node-Typen
-  FRAME: [],
-  COMPONENT: [],
-  COMPONENT_SET: [],
-  INSTANCE: [],
-  GROUP: [],
-  TEXT: [],
-  RECTANGLE: [],
-  ELLIPSE: [],
-  VECTOR: [],
-  LINE: [],
-  BOOLEAN_OPERATION: [],
-  
-  // Custom Kategorien (basierend auf Namen)
-  NAVBAR: [],
-  FOOTER: [],
-  HERO: [],
-  HEADER: [],
+  // Semantic Kategorien (basierend auf Namen + Kontext)
+  Layout: [],
+  Header: [],
   CTA: [],
-  BLOG: [],
-  TESTIMONIAL: [],
-  GALLERY: [],
-  FORM: [],
-  PRICING: [],
-  TEAM: [],
+  Testimonials: [],
+  Contact: [],
+  Pricing: [],
+  Navbar: [],
+  Footer: [],
+  MultistepForms: [],
+  Gallery: [],
+  Team: [],
+  Banners: [],
   FAQ: [],
-  CONTACT: [],
+  ContactModal: [],
+  Timelines: [],
+  Comparison: [],
+  EventHeaderItems: [],
+  EventHeaders: [],
+  Logo: [],
+  Loader: [],
   
-  // Sonstige
-  OTHER: [],
+  // Uncategorized (zum Review)
+  Uncategorized: [],
 }
 
-// Kategorisiere jeden Component
-for (const component of allComponents) {
-  const { type, name } = component
+// Intelligente Kategorisierung mit Pattern Matching
+const categoryPatterns = {
+  Layout: [/layout/i, /grid/i, /container/i, /section/i, /wrapper/i],
+  Header: [/header/i, /hero/i, /banner/i],
+  CTA: [/cta/i, /call.*action/i, /button.*section/i],
+  Testimonials: [/testimonial/i, /review/i, /rating/i],
+  Contact: [/contact/i, /kontakt/i, /form.*contact/i],
+  Pricing: [/pric(e|ing)/i, /plan/i, /package/i],
+  Navbar: [/nav(bar)?/i, /navigation/i, /menu/i],
+  Footer: [/footer/i, /fußzeile/i],
+  MultistepForms: [/form/i, /wizard/i, /step.*form/i, /multi.*step/i],
+  Gallery: [/gallery/i, /galerie/i, /image.*grid/i],
+  Team: [/team/i, /member/i, /mitarbeiter/i, /staff/i],
+  Banners: [/banner/i, /announcement/i, /notification/i],
+  FAQ: [/faq/i, /question/i, /fragen/i],
+  ContactModal: [/modal/i, /popup/i, /dialog/i],
+  Timelines: [/timeline/i, /zeitstrahl/i, /history/i],
+  Comparison: [/compar(e|ison)/i, /vergleich/i, /vs/i],
+  EventHeaderItems: [/event.*header/i, /event.*item/i],
+  EventHeaders: [/event.*hero/i],
+  Logo: [/logo/i, /brand/i],
+  Loader: [/load(er|ing)/i, /spinner/i, /skeleton/i],
+}
+
+// Kategorisiere verwendete Komponenten
+for (const component of usedComponents) {
+  const { name } = component
+  let categorized = false
   
-  // Nach Figma-Typ
-  if (categorized[type]) {
-    categorized[type].push(component)
+  // Teste gegen alle Pattern
+  for (const [category, patterns] of Object.entries(categoryPatterns)) {
+    for (const pattern of patterns) {
+      if (pattern.test(name)) {
+        categorized[category].push(component)
+        categorized = true
+        break
+      }
+    }
+    if (categorized) break
   }
   
-  // Nach Name (Case-insensitive)
-  const nameLower = name.toLowerCase()
-  
-  if (nameLower.includes('navbar') || nameLower.includes('navigation')) {
-    categorized.NAVBAR.push(component)
-  }
-  if (nameLower.includes('footer')) {
-    categorized.FOOTER.push(component)
-  }
-  if (nameLower.includes('hero')) {
-    categorized.HERO.push(component)
-  }
-  if (nameLower.includes('header')) {
-    categorized.HEADER.push(component)
-  }
-  if (nameLower.includes('cta') || nameLower.includes('call-to-action')) {
-    categorized.CTA.push(component)
-  }
-  if (nameLower.includes('blog')) {
-    categorized.BLOG.push(component)
-  }
-  if (nameLower.includes('testimonial') || nameLower.includes('review')) {
-    categorized.TESTIMONIAL.push(component)
-  }
-  if (nameLower.includes('gallery') || nameLower.includes('portfolio')) {
-    categorized.GALLERY.push(component)
-  }
-  if (nameLower.includes('form') || nameLower.includes('input')) {
-    categorized.FORM.push(component)
-  }
-  if (nameLower.includes('pricing') || nameLower.includes('price')) {
-    categorized.PRICING.push(component)
-  }
-  if (nameLower.includes('team') || nameLower.includes('member')) {
-    categorized.TEAM.push(component)
-  }
-  if (nameLower.includes('faq') || nameLower.includes('question')) {
-    categorized.FAQ.push(component)
-  }
-  if (nameLower.includes('contact')) {
-    categorized.CONTACT.push(component)
+  // Falls nicht kategorisiert, zu Uncategorized hinzufügen
+  if (!categorized) {
+    categorized.Uncategorized.push(component)
   }
 }
 
 // Ausgabe Kategorisierung
-console.log('\n📊 Kategorisierung:')
-console.log('\n**Figma Node-Typen:**')
-console.log(`   - FRAME: ${categorized.FRAME.length}`)
-console.log(`   - COMPONENT: ${categorized.COMPONENT.length}`)
-console.log(`   - COMPONENT_SET: ${categorized.COMPONENT_SET.length}`)
-console.log(`   - INSTANCE: ${categorized.INSTANCE.length}`)
-console.log(`   - GROUP: ${categorized.GROUP.length}`)
-console.log(`   - TEXT: ${categorized.TEXT.length}`)
-console.log(`   - RECTANGLE: ${categorized.RECTANGLE.length}`)
-console.log(`   - VECTOR: ${categorized.VECTOR.length}`)
+console.log('\n📊 Verwendete Komponenten nach Kategorie:')
 
-console.log('\n**Semantic Kategorien:**')
-console.log(`   - NAVBAR: ${categorized.NAVBAR.length}`)
-console.log(`   - FOOTER: ${categorized.FOOTER.length}`)
-console.log(`   - HERO: ${categorized.HERO.length}`)
-console.log(`   - HEADER: ${categorized.HEADER.length}`)
-console.log(`   - CTA: ${categorized.CTA.length}`)
-console.log(`   - BLOG: ${categorized.BLOG.length}`)
-console.log(`   - TESTIMONIAL: ${categorized.TESTIMONIAL.length}`)
-console.log(`   - GALLERY: ${categorized.GALLERY.length}`)
-console.log(`   - FORM: ${categorized.FORM.length}`)
-console.log(`   - PRICING: ${categorized.PRICING.length}`)
-console.log(`   - TEAM: ${categorized.TEAM.length}`)
-console.log(`   - FAQ: ${categorized.FAQ.length}`)
-console.log(`   - CONTACT: ${categorized.CONTACT.length}`)
+const sortedCategories = Object.entries(categorized)
+  .filter(([key, items]) => items.length > 0)
+  .sort((a, b) => b[1].length - a[1].length)
+
+for (const [category, items] of sortedCategories) {
+  console.log(`\n📦 ${category} (${items.length} Komponenten):`)
+  
+  // Zeige die ersten 5 Komponenten
+  items.slice(0, 5).forEach(comp => {
+    const usage = componentInstances.get(comp.componentId) || 1
+    console.log(`   - ${comp.name} ${usage > 1 ? `(${usage}x verwendet)` : ''}`)
+  })
+  
+  if (items.length > 5) {
+    console.log(`   ... und ${items.length - 5} weitere`)
+  }
+}
+
+// Warnung für unkategorisierte Komponenten
+if (categorized.Uncategorized.length > 0) {
+  console.warn(`\n⚠️ ${categorized.Uncategorized.length} unkategorisierte Komponenten:`)
+  categorized.Uncategorized.slice(0, 10).forEach(comp => {
+    console.log(`   - ${comp.name} (${comp.page})`)
+  })
+}
 ```
 
 ---
@@ -287,54 +294,83 @@ for (const component of topLevelComponents) {
 ### Phase 6: Mapping zu Relume-Komponenten
 
 ```typescript
-// 6. Mappe Figma-Komponenten zu Relume-Templates
+// 6. Mappe nur verwendete Figma-Komponenten zu Relume-Templates
 const relumeMapping = []
+const unmappedComponents = []
 
-// Lade alle Relume-Komponenten
-const relumeComponents = await glob('relume/**/*.tsx')
-
-for (const figmaComponent of topLevelComponents) {
-  // Suche nach passender Relume-Komponente
-  const possibleMatches = relumeComponents.filter(relumeFile => {
-    const relumeName = path.basename(relumeFile, '.tsx')
-    const figmaName = figmaComponent.name
-    
-    // Verschiedene Matching-Strategien
-    return (
-      // Exakter Name-Match
-      relumeName === figmaName ||
-      
-      // Case-insensitive Match
-      relumeName.toLowerCase() === figmaName.toLowerCase() ||
-      
-      // Partial Match (z.B. "Hero1" matched "Hero-1")
-      relumeName.replace(/[^a-zA-Z0-9]/g, '') === figmaName.replace(/[^a-zA-Z0-9]/g, '') ||
-      
-      // Kategorie-Match
-      relumeFile.includes(figmaComponent.page)
-    )
-  })
+// Lade verfügbare Relume-Komponenten nach Kategorie
+const relumeByCategory = {}
+for (const category of Object.keys(categorized)) {
+  if (category === 'Uncategorized') continue
   
-  if (possibleMatches.length > 0) {
-    relumeMapping.push({
-      figma: figmaComponent,
-      relume: possibleMatches[0],
-      matchType: 'exact',
-    })
-    console.log(`   ✅ ${figmaComponent.name} → ${possibleMatches[0]}`)
-  } else {
-    relumeMapping.push({
-      figma: figmaComponent,
-      relume: null,
-      matchType: 'none',
-    })
-    console.log(`   ⚠️ ${figmaComponent.name} → Keine Relume-Komponente gefunden`)
+  const categoryPath = `relume/${category}`
+  if (fs.existsSync(categoryPath)) {
+    relumeByCategory[category] = await glob(`${categoryPath}/**/*.tsx`)
   }
 }
 
-console.log(`\n📊 Mapping-Ergebnisse:`)
-console.log(`   - Erfolgreich gemappt: ${relumeMapping.filter(m => m.relume).length}`)
-console.log(`   - Nicht gemappt: ${relumeMapping.filter(m => !m.relume).length}`)
+console.log('\n🔗 Mapping zu Relume-Templates:')
+
+// Mappe pro Kategorie
+for (const [category, figmaComponents] of Object.entries(categorized)) {
+  if (category === 'Uncategorized' || figmaComponents.length === 0) continue
+  
+  console.log(`\n📦 ${category}:`)
+  
+  const relumeFiles = relumeByCategory[category] || []
+  
+  for (const figmaComp of figmaComponents) {
+    // Verschiedene Matching-Strategien
+    const normalizedFigmaName = figmaComp.name
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .toLowerCase()
+    
+    const match = relumeFiles.find(relumeFile => {
+      const relumeName = path.basename(relumeFile, '.tsx')
+      const normalizedRelumeName = relumeName
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .toLowerCase()
+      
+      return (
+        // Exakter Match
+        relumeName === figmaComp.name ||
+        
+        // Normalized Match
+        normalizedRelumeName === normalizedFigmaName ||
+        
+        // Enthält Match
+        normalizedRelumeName.includes(normalizedFigmaName) ||
+        normalizedFigmaName.includes(normalizedRelumeName)
+      )
+    })
+    
+    if (match) {
+      relumeMapping.push({
+        figma: figmaComp,
+        relume: match,
+        category: category,
+        matchType: 'auto',
+      })
+      console.log(`   ✅ ${figmaComp.name} → ${path.basename(match, '.tsx')}`)
+    } else {
+      // Kein Match - verwende erste verfügbare Relume-Komponente als Fallback
+      const fallback = relumeFiles[0]
+      
+      unmappedComponents.push({
+        figma: figmaComp,
+        category: category,
+        suggestedRelume: fallback ? path.basename(fallback, '.tsx') : null,
+      })
+      
+      console.log(`   ⚠️ ${figmaComp.name} → Kein exaktes Match ${fallback ? `(Vorschlag: ${path.basename(fallback, '.tsx')})` : ''}`)
+    }
+  }
+}
+
+console.log(`\n📊 Mapping-Zusammenfassung:`)
+console.log(`   - Automatisch gemappt: ${relumeMapping.length}`)
+console.log(`   - Benötigt manuelles Review: ${unmappedComponents.length}`)
+console.log(`   - Gesamt zu generierende Blocks: ${relumeMapping.length + unmappedComponents.length}`)
 ```
 
 ---
@@ -342,27 +378,40 @@ console.log(`   - Nicht gemappt: ${relumeMapping.filter(m => !m.relume).length}`
 ### Phase 7: Export & Dokumentation
 
 ```typescript
-// 7. Exportiere vollständiges Inventar
+// 7. Exportiere Inventar der VERWENDETEN Komponenten
 const inventory = {
   meta: {
     generatedAt: new Date().toISOString(),
     figmaFileKey: FIGMA_FILE_KEY,
     figmaFileName: figmaFile.name,
     figmaVersion: figmaFile.version,
-    totalComponents: allComponents.length,
+    totalUsedComponents: usedComponents.length,
+    totalMappedComponents: relumeMapping.length,
+    componentsToGenerate: relumeMapping.length + unmappedComponents.length,
   },
   
-  // Alle Komponenten
-  allComponents,
+  // Verwendete Komponenten
+  usedComponents,
+  
+  // Verwendungs-Statistik
+  componentUsage: Array.from(componentInstances.entries()).map(([id, count]) => ({
+    componentId: id,
+    usageCount: count,
+  })),
   
   // Kategorisierung
-  categorized,
-  
-  // Top-Level Komponenten
-  topLevelComponents,
+  categorized: Object.entries(categorized)
+    .filter(([_, items]) => items.length > 0)
+    .reduce((acc, [key, value]) => {
+      acc[key] = value
+      return acc
+    }, {}),
   
   // Relume-Mapping
   relumeMapping,
+  
+  // Unmapped (für manuelles Review)
+  unmappedComponents,
   
   // Statistiken
   statistics: {
@@ -391,7 +440,7 @@ await fs.writeFile(
 
 // Generiere Markdown-Dokumentation
 const markdown = `
-# Figma Components Inventory
+# Figma Components Inventory - Verwendete Komponenten
 
 **Generiert:** ${inventory.meta.generatedAt}
 **Figma File:** ${inventory.meta.figmaFileName}
@@ -401,60 +450,109 @@ const markdown = `
 
 ## 📊 Übersicht
 
-- **Gesamt:** ${inventory.meta.totalComponents} Komponenten
-- **Seiten:** ${inventory.statistics.byPage.length}
-- **Max. Tiefe:** ${Math.max(...inventory.statistics.byDepth.map(d => d.depth))}
+- **Im Figma verwendet:** ${inventory.meta.totalUsedComponents} Komponenten
+- **Automatisch gemappt:** ${inventory.meta.totalMappedComponents} Komponenten
+- **Zu generierende Blocks:** ${inventory.meta.componentsToGenerate}
 
 ---
 
-## 📦 Komponenten nach Typ
+## 📦 Verwendete Komponenten nach Kategorie
 
-${inventory.statistics.byType.map(({ type, count }) => 
-  `### ${type} (${count})\n` +
-  categorized[type].slice(0, 10).map(c => 
-    `- \`${c.name}\` (${c.page})`
-  ).join('\n') +
-  (categorized[type].length > 10 ? `\n... und ${categorized[type].length - 10} weitere` : '')
-).join('\n\n')}
-
----
-
-## 📄 Komponenten nach Seite
-
-${inventory.statistics.byPage.map(({ name, count }) => 
-  `### ${name} (${count} Komponenten)`
-).join('\n\n')}
+${Object.entries(categorized)
+  .filter(([_, items]) => items.length > 0)
+  .sort((a, b) => b[1].length - a[1].length)
+  .map(([category, items]) => 
+    `### ${category} (${items.length} Komponenten)\n\n` +
+    items.slice(0, 10).map(c => {
+      const usage = componentInstances.get(c.componentId) || 1
+      return `- \`${c.name}\` ${usage > 1 ? `**(${usage}x verwendet)**` : ''} (${c.page})`
+    }).join('\n') +
+    (items.length > 10 ? `\n\n... und ${items.length - 10} weitere` : '')
+  ).join('\n\n')}
 
 ---
 
 ## 🔗 Figma ↔ Relume Mapping
 
-### ✅ Erfolgreich gemappt (${relumeMapping.filter(m => m.relume).length})
+### ✅ Automatisch gemappt (${relumeMapping.length})
 
-${relumeMapping
-  .filter(m => m.relume)
-  .map(m => `- **${m.figma.name}** → \`${m.relume}\``)
-  .join('\n')}
+${Object.entries(
+  relumeMapping.reduce((acc, m) => {
+    if (!acc[m.category]) acc[m.category] = []
+    acc[m.category].push(m)
+    return acc
+  }, {})
+).map(([category, mappings]) =>
+  `#### ${category}\n\n` +
+  mappings.map(m => 
+    `- **${m.figma.name}** → \`${path.basename(m.relume, '.tsx')}\``
+  ).join('\n')
+).join('\n\n')}
 
-### ⚠️ Nicht gemappt (${relumeMapping.filter(m => !m.relume).length})
+---
 
-${relumeMapping
-  .filter(m => !m.relume)
-  .map(m => `- **${m.figma.name}** (${m.figma.page})`)
+### ⚠️ Benötigt manuelles Review (${unmappedComponents.length})
+
+${unmappedComponents.length > 0 ? 
+  Object.entries(
+    unmappedComponents.reduce((acc, item) => {
+      if (!acc[item.category]) acc[item.category] = []
+      acc[item.category].push(item)
+      return acc
+    }, {})
+  ).map(([category, items]) =>
+    `#### ${category}\n\n` +
+    items.map(item => 
+      `- **${item.figma.name}** ${item.suggestedRelume ? `→ Vorschlag: \`${item.suggestedRelume}\`` : '(keine Vorlage gefunden)'}`
+    ).join('\n')
+  ).join('\n\n')
+  : '*Alle Komponenten erfolgreich gemappt!*'
+}
+
+---
+
+## 📊 Verwendungs-Statistik
+
+Top 10 meist-verwendete Komponenten:
+
+${Array.from(componentInstances.entries())
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 10)
+  .map(([id, count]) => {
+    const comp = usedComponents.find(c => c.componentId === id)
+    return `${count}x - ${comp ? comp.name : id}`
+  })
   .join('\n')}
 
 ---
 
 ## 🚀 Nächste Schritte
 
-1. Review nicht gemappter Komponenten
-2. Generiere fehlende Relume-Templates
-3. Starte Block-Generierung mit \`build-blocks-full\`
-4. Registriere alle Blocks in PayloadCMS
+1. **Review unmapped Components** (falls vorhanden)
+   - Prüfe vorgeschlagene Relume-Vorlagen
+   - Weise manuell zu oder erstelle neue Templates
+
+2. **Starte Block-Generierung**
+   \`\`\`bash
+   cursor> Generate Blocks from Figma Inventory
+   \`\`\`
+
+3. **Validiere generierte Blocks**
+   \`\`\`bash
+   cursor> Validate All Blocks
+   \`\`\`
+
+---
+
+## 💡 Hinweis
+
+Diese Inventarliste enthält **nur die im Figma tatsächlich verwendeten Komponenten**.
+Es werden **${inventory.meta.componentsToGenerate} Blocks** generiert (nicht 1071).
 
 ---
 
 **Vollständiges Inventar:** \`FIGMA_INVENTORY.json\`
+**Nur diese Komponenten werden als PayloadCMS Blocks generiert!**
 `
 
 await fs.writeFile('FIGMA_INVENTORY.md', markdown)
