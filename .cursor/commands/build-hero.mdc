@@ -4,8 +4,8 @@ description: 'Analysiert alle Hero-Komponenten im Figma-File und generiert dynam
 ---
 
 1. **Figma-Komponenten scannen**
-   - Durchsuche das verbundene Figma-Projekt nach Frames oder Komponenten, deren Name „Hero“ enthält.
-   - Erfasse alle Varianten (z. B. `HeroImageLeft`, `HeroVideoCentered`, `HeroGallery` usw.).
+   - Durchsuche das verbundene Figma-Projekt nach Frames oder Komponenten, deren Name `Header` enthält.
+   - Erfasse alle Varianten (z. B. `Header1`, `Header2`, `Header5` usw.).
    - Analysiere pro Hero:
      - enthaltene Elemente (Text, RichText, Media, Video, Buttons),
      - Layoutstruktur,
@@ -51,7 +51,7 @@ description: 'Analysiert alle Hero-Komponenten im Figma-File und generiert dynam
              )}
            </div>
            {media?.length > 0 && (
-             <Media resource={media[0].image} className="md:w-1/2 rounded-xl shadow-lg" />
+             <Media resource={media[0].image} fill className="md:w-1/2 rounded-xl shadow-lg" />
            )}
          </div>
        </section>
@@ -70,9 +70,9 @@ description: 'Analysiert alle Hero-Komponenten im Figma-File und generiert dynam
          { label: 'None', value: 'none' },
          { label: 'Post Hero', value: 'postHero' },
          // Dynamisch hinzufügen:
-         { label: 'Hero mit Bild links', value: 'HeroImageLeft' },
-         { label: 'Hero mit Video zentriert', value: 'HeroVideoCentered' },
-         { label: 'Hero Galerie', value: 'HeroGallery' },
+         { label: Header1 - Hero mit Bild rechts, value: 'Header1' },
+         { label: 'Header5 - Hero mit Fullscreen Bild', value: 'Header5' },
+         { label: 'Header68 - Hero mit Stichpunkten', value: 'Header68' },
        ],
        required: true,
      }
@@ -92,15 +92,15 @@ description: 'Analysiert alle Hero-Komponenten im Figma-File und generiert dynam
 
      ```tsx
      import { PostHero } from './PostHero'
-     import { HeroImageLeft } from './HeroImageLeft'
-     import { HeroVideoCentered } from './HeroVideoCentered'
-     import { HeroGallery } from './HeroGallery'
+     import { Header1 } from './Header1'
+     import { Header5 } from './Header5'
+     import { Header68 } from './Header68'
 
      const heroes = {
        postHero: PostHero,
-       HeroImageLeft,
-       HeroVideoCentered,
-       HeroGallery,
+       Header1,
+       Header5,
+       Header68,
      }
 
      export const RenderHero = (props: any) => {
