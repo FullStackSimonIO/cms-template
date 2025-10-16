@@ -1,0 +1,664 @@
+---
+title: 'Generate Navbar from Figma'
+description: 'Generiert die Navbar aus Figma mit DesktopNav und MobileNav als separate Komponenten.'
+---
+
+## 🎯 Ziel
+Erstelle die Navbar mit Aufteilung in **DesktopNav** und **MobileNav** für bessere Übersichtlichkeit und Wartbarkeit.
+
+---
+
+## 📋 Voraussetzungen
+
+```bash
+# 1. Figma Inventory muss existieren
+> Fetch Used Figma Components
+
+# 2. Prüfe ob Navbar gefunden wurde
+cat FIGMA_INVENTORY.json | grep -i "navbar\|navigation"
+```
+
+---
+
+## 🔄 Navbar-Generierungs-Workflow
+
+### Phase 1: Navbar aus Inventory laden
+
+```typescript
+// 1. Lade Figma Inventory und finde Navbar
+const inventory = JSON.parse(
+  await fs.readFile('FIGMA_INVENTORY.json', 'utf-8')
+)
+
+// Suche nach Navbar-Komponenten
+const navbarComponents = inventory.relumeMapping.filter(
+  mapping => mapping.category === 'Navbar'
+)
+
+if (navbarComponents.length === 0) {
+  console.error('❌ Keine Navbar-Komponente im Figma gefunden')
+  console.log('💡 Tipp: Komponente sollte "Navbar" oder "Navigation" im Namen haben')
+  process.exit(1)
+}
+
+// Verwende erste Navbar (normalerweise gibt es nur eine)
+const navbarMapping = navbarComponents[0]
+
+console.log('🧭 Navbar gefunden:')
+console.log(`   - Name: ${navbarMapping.figma.name}`)
+console.log(`   - Seite: ${navbarMapping.figma.page}`)
+console.log(`   - Relume-Template: ${navbarMapping.relume}`)
+```
+
+---
+
+### Phase 2: Navbar-Struktur analysieren
+
+```typescript
+// 2. Lade Figma-Details für Navbar-Analyse
+const figmaDetails = await mcp.getFigmaNode({
+  fileKey: FIGMA_FILE_KEY,
+  nodeId: navbarMapping.figma.id,
+})
+
+// Analysiere Navbar-Struktur
+const navbarStructure = {
+  logo: null,
+  menuItems: [],
+  buttons: [],
+  search: false,
+  userMenu: false,
+}
+
+// Durchsuche Navbar rekursiv
+function analyzeNavbarStructure(node) {
+  const nameLower = node.name.toLowerCase()
+  
+  // Logo erkennen
+  if (nameLower.includes('logo') || nameLower.includes('brand')) {
+    navbarStructure.logo = {
+      id: node.id,
+      name: node.name,
+    }
+  }
+  
+  // Menü-Items erkennen
+  if (nameLower.includes('menu') || nameLower.includes('nav') && !nameLower.includes('navbar')) {
+    if (node.children && node.children.length > 0) {
+      node.children.forEach(child => {
+        if (child.type === 'TEXT') {
+          navbarStructure.menuItems.push({
+            id: child.id,
+            name: child.name,
+            text: child.characters || child.name,
+          })
+        }
+      })
+    }
+  }
+  
+  // Buttons erkennen
+  if (nameLower.includes('button') || nameLower.includes('cta')) {
+    navbarStructure.buttons.push({
+      id: node.id,
+      name: node.name,
+      text: node.characters || node.name,
+    })
+  }
+  
+  // Search erkennen
+  if (nameLower.includes('search') || nameLower.includes('suche')) {
+    navbarStructure.search = true
+  }
+  
+  // User Menu erkennen
+  if (nameLower.includes('user') || nameLower.includes('account') || nameLower.includes('profile')) {
+    navbarStructure.userMenu = true
+  }
+  
+  // Rekursiv durch Kinder
+  if (node.children) {
+    node.children.forEach(child => analyzeNavbarStructure(child))
+  }
+}
+
+analyzeNavbarStructure(figmaDetails)
+
+console.log('\n📊 Navbar-Struktur:')
+console.log(`   - Logo: ${navbarStructure.logo ? '✓' : '✗'}`)
+console.log(`   - Menü-Items: ${navbarStructure.menuItems.length}`)
+console.log(`   - Buttons: ${navbarStructure.buttons.length}`)
+console.log(`   - Search: ${navbarStructure.search ? '✓' : '✗'}`)
+console.log(`   - User Menu: ${navbarStructure.userMenu ? '✓' : '✗'}`)
+```
+
+---
+
+### Phase 3: Navbar-Komponenten generieren
+
+```typescript
+// 3. Erstelle Navbar-Verzeichnis
+const navbarPath = 'src/Header'
+await fs.mkdir(navbarPath, { recursive: true })
+
+console.log('\n🏗️ Generiere Navbar-Komponenten...')
+
+// 3.1 Generiere DesktopNav.tsx
+const desktopNavCode = `'use client'
+
+import React from 'react'
+import Link from 'next/link'
+import { CMSLink } from '@/components/CMSLink'
+import { Media } from '@/components/Media'
+import type { Header as HeaderType } from '@/payload-types'
+
+interface DesktopNavProps {
+  header: HeaderType
+}
+
+export const DesktopNav: React.FC<DesktopNavProps> = ({ header }) => {
+  const { logo, navItems } = header || {}
+  
+  return (
+    <nav className="hidden lg:flex items-center justify-between w-full">
+      {/* Logo */}
+      {logo && (
+        <Link href="/" className="flex items-center">
+          <Media 
+            resource={logo} 
+            className="h-8 w-auto"
+            imgClassName="object-contain"
+          />
+        </Link>
+      )}
+      
+      {/* Navigation Items */}
+      {navItems && navItems.length > 0 && (
+        <ul className="flex items-center gap-8 mx-auto">
+          {navItems.map((item, index) => {
+            const { link } = item
+            
+            return (
+              <li key={index}>
+                <Link
+                  href={link?.url || '#'}
+                  className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+                >
+                  {link?.label}
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      
+      {/* CTA Buttons */}
+      <div className="flex items-center gap-4">
+        ${navbarStructure.search ? `
+        {/* Search */}
+        <button
+          type="button"
+          className="p-2 rounded-lg hover:bg-muted transition-colors"
+          aria-label="Suche öffnen"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </button>
+        ` : ''}
+        
+        ${navbarStructure.buttons.length > 0 ? `
+        {/* Primary CTA */}
+        {header.primaryCTA && (
+          <CMSLink 
+            {...header.primaryCTA} 
+            appearance="default"
+            size="sm"
+          />
+        )}
+        
+        {/* Secondary CTA */}
+        {header.secondaryCTA && (
+          <CMSLink 
+            {...header.secondaryCTA} 
+            appearance="outline"
+            size="sm"
+          />
+        )}
+        ` : ''}
+      </div>
+    </nav>
+  )
+}
+`
+
+await fs.writeFile(\`\${navbarPath}/DesktopNav.tsx\`, desktopNavCode)
+console.log('   ✅ DesktopNav.tsx')
+
+// 3.2 Generiere MobileNav.tsx
+const mobileNavCode = `'use client'
+
+import React, { useState } from 'react'
+import Link from 'next/link'
+import { CMSLink } from '@/components/CMSLink'
+import { Media } from '@/components/Media'
+import type { Header as HeaderType } from '@/payload-types'
+
+interface MobileNavProps {
+  header: HeaderType
+}
+
+export const MobileNav: React.FC<MobileNavProps> = ({ header }) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const { logo, navItems } = header || {}
+  
+  return (
+    <div className="lg:hidden">
+      {/* Mobile Header */}
+      <div className="flex items-center justify-between w-full">
+        {/* Logo */}
+        {logo && (
+          <Link href="/" className="flex items-center">
+            <Media 
+              resource={logo} 
+              className="h-8 w-auto"
+              imgClassName="object-contain"
+            />
+          </Link>
+        )}
+        
+        {/* Hamburger Button */}
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="p-2 rounded-lg hover:bg-muted transition-colors"
+          aria-label="Menü öffnen"
+          aria-expanded={isOpen}
+        >
+          {isOpen ? (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
+        </button>
+      </div>
+      
+      {/* Mobile Menu */}
+      {isOpen && (
+        <div className="fixed inset-0 top-16 z-50 bg-background border-t">
+          <div className="container py-8">
+            {/* Navigation Items */}
+            {navItems && navItems.length > 0 && (
+              <ul className="space-y-4">
+                {navItems.map((item, index) => {
+                  const { link } = item
+                  
+                  return (
+                    <li key={index}>
+                      <Link
+                        href={link?.url || '#'}
+                        onClick={() => setIsOpen(false)}
+                        className="block py-3 text-lg font-medium text-foreground hover:text-primary transition-colors"
+                      >
+                        {link?.label}
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+            
+            {/* CTA Buttons */}
+            <div className="mt-8 space-y-4">
+              ${navbarStructure.buttons.length > 0 ? `
+              {header.primaryCTA && (
+                <CMSLink 
+                  {...header.primaryCTA} 
+                  appearance="default"
+                  className="w-full"
+                  onClick={() => setIsOpen(false)}
+                />
+              )}
+              
+              {header.secondaryCTA && (
+                <CMSLink 
+                  {...header.secondaryCTA} 
+                  appearance="outline"
+                  className="w-full"
+                  onClick={() => setIsOpen(false)}
+                />
+              )}
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+`
+
+await fs.writeFile(\`\${navbarPath}/MobileNav.tsx\`, mobileNavCode)
+console.log('   ✅ MobileNav.tsx')
+
+// 3.3 Generiere Component.tsx (Wrapper)
+const componentCode = `import React from 'react'
+import { DesktopNav } from './DesktopNav'
+import { MobileNav } from './MobileNav'
+import type { Header as HeaderType } from '@/payload-types'
+
+interface HeaderProps {
+  header: HeaderType
+}
+
+export const Header: React.FC<HeaderProps> = ({ header }) => {
+  return (
+    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container py-4">
+        {/* Desktop Navigation */}
+        <DesktopNav header={header} />
+        
+        {/* Mobile Navigation */}
+        <MobileNav header={header} />
+      </div>
+    </header>
+  )
+}
+`
+
+await fs.writeFile(\`\${navbarPath}/Component.tsx\`, componentCode)
+console.log('   ✅ Component.tsx (Wrapper)')
+
+// 3.4 Generiere index.ts
+const indexCode = \`export { Header } from './Component'
+export { DesktopNav } from './DesktopNav'
+export { MobileNav } from './MobileNav'
+\`
+
+await fs.writeFile(\`\${navbarPath}/index.ts\`, indexCode)
+console.log('   ✅ index.ts')
+```
+
+---
+
+### Phase 4: Navbar-Config generieren
+
+```typescript
+// 4. Generiere config.ts für Navbar
+const configCode = \`import { GlobalConfig } from 'payload/types'
+
+export const Header: GlobalConfig = {
+  slug: 'header',
+  label: 'Navigation',
+  admin: {
+    group: 'Globale Einstellungen',
+    description: 'Konfiguriere die Navigationsleiste',
+  },
+  fields: [
+    // Logo
+    {
+      name: 'logo',
+      type: 'upload',
+      relationTo: 'media',
+      label: 'Logo',
+      required: true,
+      admin: {
+        description: 'Logo in der Navigation',
+      },
+    },
+    
+    // Navigation Items
+    {
+      name: 'navItems',
+      type: 'array',
+      label: 'Navigations-Links',
+      labels: {
+        singular: 'Link',
+        plural: 'Links',
+      },
+      admin: {
+        description: 'Haupt-Navigation',
+      },
+      fields: [
+        {
+          name: 'link',
+          type: 'group',
+          label: 'Link',
+          fields: [
+            {
+              name: 'label',
+              type: 'text',
+              label: 'Link-Text',
+              required: true,
+            },
+            {
+              name: 'url',
+              type: 'text',
+              label: 'URL',
+              required: true,
+            },
+            {
+              name: 'type',
+              type: 'select',
+              label: 'Link-Typ',
+              options: [
+                { label: 'Interner Link', value: 'internal' },
+                { label: 'Externer Link', value: 'external' },
+              ],
+              defaultValue: 'internal',
+            },
+            {
+              name: 'newTab',
+              type: 'checkbox',
+              label: 'In neuem Tab öffnen',
+              defaultValue: false,
+            },
+          ],
+        },
+      ],
+    },
+    
+    ${navbarStructure.buttons.length > 0 ? \`
+    // Primary CTA
+    {
+      name: 'primaryCTA',
+      type: 'group',
+      label: 'Haupt-Button',
+      admin: {
+        description: 'Primärer Call-to-Action in der Navigation',
+      },
+      fields: [
+        {
+          name: 'label',
+          type: 'text',
+          label: 'Button-Text',
+          required: true,
+        },
+        {
+          name: 'url',
+          type: 'text',
+          label: 'URL',
+          required: true,
+        },
+        {
+          name: 'newTab',
+          type: 'checkbox',
+          label: 'In neuem Tab öffnen',
+          defaultValue: false,
+        },
+      ],
+    },
+    
+    // Secondary CTA
+    {
+      name: 'secondaryCTA',
+      type: 'group',
+      label: 'Zweiter Button',
+      admin: {
+        description: 'Sekundärer Call-to-Action (optional)',
+      },
+      fields: [
+        {
+          name: 'label',
+          type: 'text',
+          label: 'Button-Text',
+        },
+        {
+          name: 'url',
+          type: 'text',
+          label: 'URL',
+        },
+      ],
+    },
+    \` : ''}
+  ],
+}
+\`
+
+await fs.writeFile(\`\${navbarPath}/config.ts\`, configCode)
+console.log('   ✅ config.ts')
+```
+
+---
+
+### Phase 5: Payload Config aktualisieren
+
+```typescript
+// 5. Registriere Navbar in payload.config.ts
+const payloadConfigPath = 'src/payload.config.ts'
+const payloadConfig = await fs.readFile(payloadConfigPath, 'utf-8')
+
+// Füge Import hinzu
+const headerImport = \`import { Header } from './Header/config'\n\`
+
+// Füge zu globals hinzu
+const updatedPayloadConfig = payloadConfig
+  .replace(
+    /import.*from.*\n/g,
+    match => match + (match.includes('Header/config') ? '' : headerImport)
+  )
+  .replace(
+    /globals:\s*\[/,
+    \`globals: [
+    Header,  // ← Navbar
+    \`
+  )
+
+await fs.writeFile(payloadConfigPath, updatedPayloadConfig)
+console.log('\n✅ Navbar in payload.config.ts registriert')
+```
+
+---
+
+## 🎉 Erfolgsmeldung
+
+```typescript
+console.log('\n' + '='.repeat(80))
+console.log('🧭 NAVBAR-GENERIERUNG ABGESCHLOSSEN!')
+console.log('='.repeat(80))
+console.log(\`
+📊 Zusammenfassung:
+   ✅ Navbar aus Figma erkannt
+   ✅ Struktur analysiert:
+      - Logo: ${navbarStructure.logo ? '✓' : '✗'}
+      - ${navbarStructure.menuItems.length} Menü-Items
+      - ${navbarStructure.buttons.length} Buttons
+      - Search: ${navbarStructure.search ? '✓' : '✗'}
+   
+📁 Generierte Dateien:
+   - src/Header/Component.tsx (Wrapper)
+   - src/Header/DesktopNav.tsx (Desktop)
+   - src/Header/MobileNav.tsx (Mobile)
+   - src/Header/config.ts (PayloadCMS)
+   - src/Header/index.ts (Exports)
+
+✅ Features:
+   - Responsive Design (Desktop + Mobile)
+   - Hamburger-Menü für Mobile
+   - Sticky Header
+   - Backdrop Blur Effect
+   - Accessibility (ARIA)
+
+🎯 Im Admin-Panel:
+   http://localhost:3000/admin/globals/header
+   
+   Konfiguriere:
+   - Logo
+   - Navigations-Links
+   ${navbarStructure.buttons.length > 0 ? '- CTA-Buttons' : ''}
+
+🚀 Nächste Schritte:
+   1. npm run type-check
+   2. npm run dev
+   3. Konfiguriere Navbar im Admin
+   4. Teste auf Desktop & Mobile
+\`)
+console.log('='.repeat(80))
+```
+
+---
+
+## 📁 Dateistruktur
+
+```
+src/Header/
+├── Component.tsx      ← Wrapper (rendert Desktop + Mobile)
+├── DesktopNav.tsx     ← Desktop-Navigation (lg: und größer)
+├── MobileNav.tsx      ← Mobile-Navigation (< lg:)
+├── config.ts          ← PayloadCMS Global Config
+└── index.ts           ← Exports
+```
+
+---
+
+## 🎨 Komponenten-Aufteilung
+
+### Component.tsx (Wrapper)
+- Rendert DesktopNav + MobileNav
+- Sticky Header
+- Container
+
+### DesktopNav.tsx
+- Horizontal Layout
+- Logo links
+- Menü-Items zentriert
+- Buttons rechts
+- Nur sichtbar auf `lg:` und größer
+
+### MobileNav.tsx
+- Logo + Hamburger
+- Slide-In Menü
+- Full-Screen Overlay
+- Nur sichtbar unter `lg:`
+
+---
+
+## 🚀 Verwendung
+
+```bash
+# 1. Figma scannen (falls noch nicht geschehen)
+> Fetch Used Figma Components
+
+# 2. Navbar generieren
+> Generate Navbar from Figma
+
+# 3. Dev-Server starten
+npm run dev
+
+# 4. Navbar konfigurieren
+open http://localhost:3000/admin/globals/header
+```
+
+Im Admin:
+1. Logo hochladen
+2. Navigations-Links hinzufügen
+3. CTA-Buttons konfigurieren
+4. Speichern
+
+---
+
+✅ **Navbar mit separaten Desktop/Mobile-Komponenten für perfekte Übersichtlichkeit!**

@@ -1,10 +1,10 @@
-# 🚀 Quick Start - Intelligente Block-Generierung aus Figma
+# 🚀 Quick Start - Vollständiger Website-Generator aus Figma
 
-Optimierte Cursor .mdc-Dateien für die **intelligente Generierung** von PayloadCMS Blocks und Hero-Sections mit **conditional Fields** basierend auf deinem Figma-Design.
+Optimierte Cursor .mdc-Dateien für die **intelligente Generierung** einer kompletten PayloadCMS-Website mit **Navbar**, **Footer**, **Heroes** und **Blocks** - alles aus deinem Figma-Design.
 
 ---
 
-## ⚡ TL;DR - Schnellster Weg
+## ⚡ TL;DR - Kompletter Workflow
 
 ```bash
 # In Cursor AI (Cmd/Ctrl+K):
@@ -12,66 +12,132 @@ Optimierte Cursor .mdc-Dateien für die **intelligente Generierung** von Payload
 # 1. Figma scannen
 > Fetch Used Figma Components
 
-# 2. Heroes generieren (mit conditional fields!)
+# 2. Navbar generieren
+> Generate Navbar from Figma
+
+# 3. Footer generieren
+> Generate Footer from Figma
+
+# 4. Heroes generieren
 > Generate Heroes from Figma Inventory
 
-# 3. Blocks generieren
+# 5. Blocks generieren
 > Generate Blocks from Figma Inventory
 ```
 
 **Das war's!** 🎉
 
-**Dauer:** ~15 Minuten  
-**Output:** 
-- Heroes unter `/src/heros/` (mit conditional fields)
-- Blocks unter `/src/blocks/`
-- Nur tatsächlich verwendete Komponenten
+**Dauer:** ~20 Minuten  
+**Output:** Komplette Website-Struktur
 
 ---
 
-## 🎯 Das Besondere
+## 📊 Generierungs-Reihenfolge
 
-### 1. Intelligente Hero-Erkennung 🦸
-**Figma-Komponenten mit "Header" im Namen** werden automatisch als **Hero-Sections** erkannt und unter `/src/heros/` gespeichert (nicht unter `/src/blocks/`).
+### Warum diese Reihenfolge?
 
-### 2. Conditional Fields ✨
-Jeder Hero-Typ zeigt **nur die relevanten Felder** im Admin-Panel:
-
-```
-Hero1 (mit Bild):
-├── Titel ✓
-├── Beschreibung ✓
-├── Bild ✓
-└── 2 Buttons ✓
-
-Hero2 (mit Galerie):
-├── Titel ✓
-├── Beschreibung ✓
-├── Bild-Galerie ✓  ← Statt einzelnem Bild
-└── 1 Button ✓
-
-Hero3 (mit Features):
-├── Titel ✓
-├── Beschreibung ✓
-├── Feature-Liste ✓  ← Neu!
-├── Bild ✓
-└── 1 Button ✓
-
-Hero4 (mit Formular):
-├── Titel ✓
-├── Beschreibung ✓
-├── Formular-Felder ✓  ← Neu!
-└── Bild ✓
-```
-
-### 3. Nur verwendete Komponenten 📦
-Statt alle 1071 Relume-Templates werden nur die **im Figma verwendeten** Komponenten generiert (typisch 30-80).
+1. **Figma-Scan** → Erkennt alle Komponenten
+2. **Navbar** → Globale Navigation (einmalig)
+3. **Footer** → Globaler Footer (einmalig)
+4. **Heroes** → Conditional Fields, Page-spezifisch
+5. **Blocks** → Content-Blöcke für Pages
 
 ---
 
-## 🔄 Drei-Schritt-Workflow
+## 🎯 Was wird generiert?
 
-### Schritt 1: Figma scannen 📷
+### 1. Navbar 🧭
+**Erkannt:** Komponenten mit "Navbar" oder "Navigation" im Namen
+
+**Generierte Dateien:**
+```
+src/Header/
+├── Component.tsx        ← Wrapper
+├── DesktopNav.tsx       ← Desktop (lg: und größer)
+├── MobileNav.tsx        ← Mobile (< lg:)
+├── config.ts            ← PayloadCMS Global
+└── index.ts             ← Exports
+```
+
+**Features:**
+- ✅ Responsive (Desktop + Mobile getrennt)
+- ✅ Hamburger-Menü für Mobile
+- ✅ Sticky Header
+- ✅ Logo + Menü + Buttons
+
+---
+
+### 2. Footer 🦶
+**Erkannt:** Komponenten mit "Footer" im Namen
+
+**Generierte Dateien:**
+```
+src/Footer/
+├── Component.tsx          ← Wrapper
+├── FooterColumns.tsx      ← Spalten mit Links
+├── FooterBottom.tsx       ← Copyright + Legal + Social
+├── config.ts              ← PayloadCMS Global
+└── index.ts               ← Exports
+```
+
+**Features:**
+- ✅ Multi-Column Layout
+- ✅ Social Media Links
+- ✅ Newsletter (optional)
+- ✅ Legal Links (Impressum, Datenschutz)
+
+---
+
+### 3. Heroes 🦸
+**Erkannt:** Komponenten mit "Header" oder "Hero" im Namen
+
+**Generierte Dateien:**
+```
+src/heros/
+├── Header1/
+│   └── index.tsx         ← Hero mit Bild
+├── Header2/
+│   └── index.tsx         ← Hero mit Galerie
+├── Header3/
+│   └── index.tsx         ← Hero mit Features
+├── config.ts             ← ✨ Conditional Fields!
+└── RenderHero.tsx        ← Dynamisches Rendering
+```
+
+**Features:**
+- ✅ **Conditional Fields** im Admin
+- ✅ Automatische Typ-Erkennung
+- ✅ Verschiedene Layouts pro Hero
+
+---
+
+### 4. Blocks 🧱
+**Erkannt:** Alle anderen Komponenten
+
+**Generierte Dateien:**
+```
+src/blocks/
+├── Layout/
+│   └── FeatureGrid/
+│       ├── Component.tsx
+│       ├── config.ts
+│       └── index.ts
+├── CTA/
+│   └── NewsletterCTA/
+│       └── ...
+└── ... (weitere Kategorien)
+```
+
+**Features:**
+- ✅ Nur verwendete Komponenten
+- ✅ Deutsche Admin-Labels
+- ✅ Automatische Registrierung
+
+---
+
+## 🔄 Detaillierter Workflow
+
+### Schritt 1: Figma scannen (3 Min)
 
 ```bash
 > Fetch Used Figma Components
@@ -80,26 +146,29 @@ Statt alle 1071 Relume-Templates werden nur die **im Figma verwendeten** Kompone
 **Was passiert:**
 1. Scannt alle Seiten im Figma
 2. Identifiziert Komponenten
-3. **Erkennt "Header"-Komponenten als Heroes**
-4. Kategorisiert restliche Komponenten
-5. Erstellt `FIGMA_INVENTORY.json`
-
-**Dauer:** ~3 Minuten
+3. Kategorisiert automatisch:
+   - **Hero** ← "Header" im Namen
+   - **Navbar** ← "Navbar/Navigation" im Namen
+   - **Footer** ← "Footer" im Namen
+   - **Layout, CTA, etc.** ← Rest
+4. Erstellt `FIGMA_INVENTORY.json`
 
 **Output Beispiel:**
 ```json
 {
   "categorized": {
     "Hero": [
-      { "name": "Header 1 - Homepage", "page": "01 Homepage" },
-      { "name": "Header 2 - Contact", "page": "03 Contact" },
-      { "name": "Header 3 - About", "page": "02 About" }
+      { "name": "Header 1 - Homepage" },
+      { "name": "Header 2 - Contact" }
+    ],
+    "Navbar": [
+      { "name": "Navigation Bar" }
+    ],
+    "Footer": [
+      { "name": "Footer" }
     ],
     "Layout": [
-      { "name": "Features Grid", "page": "01 Homepage" }
-    ],
-    "CTA": [
-      { "name": "Newsletter CTA", "page": "01 Homepage" }
+      { "name": "Features Grid" }
     ]
   }
 }
@@ -107,473 +176,362 @@ Statt alle 1071 Relume-Templates werden nur die **im Figma verwendeten** Kompone
 
 ---
 
-### Schritt 2: Heroes generieren 🦸
+### Schritt 2: Navbar generieren (2-3 Min)
+
+```bash
+> Generate Navbar from Figma
+```
+
+**Was passiert:**
+1. Findet Navbar aus Inventory
+2. Analysiert Struktur (Logo, Menü, Buttons)
+3. **Generiert 2 separate Dateien:**
+   - `DesktopNav.tsx` (lg: und größer)
+   - `MobileNav.tsx` (< lg:)
+4. Erstellt `config.ts` für Admin
+5. Registriert in `payload.config.ts`
+
+**Admin-Panel:**
+```
+Globals → Navigation
+
+┌──────────────────────────┐
+│ Logo                     │
+│ [Upload...]              │
+│                          │
+│ Navigations-Links        │
+│  ├─ Home (/)`           │
+│  ├─ About (/about)      │
+│  └─ Contact (/kontakt)  │
+│                          │
+│ Haupt-Button             │
+│  Text: Kontakt           │
+│  URL: /kontakt           │
+└──────────────────────────┘
+```
+
+---
+
+### Schritt 3: Footer generieren (2-3 Min)
+
+```bash
+> Generate Footer from Figma
+```
+
+**Was passiert:**
+1. Findet Footer aus Inventory
+2. Analysiert Struktur (Spalten, Social, Legal)
+3. **Generiert aufgeteilte Komponenten:**
+   - `FooterColumns.tsx` (Spalten)
+   - `FooterBottom.tsx` (Copyright + Legal)
+4. Erstellt `config.ts` für Admin
+5. Registriert in `payload.config.ts`
+
+**Admin-Panel:**
+```
+Globals → Footer
+
+┌──────────────────────────┐
+│ Logo + Beschreibung      │
+│                          │
+│ Footer-Spalten           │
+│  Spalte 1: Produkte      │
+│   ├─ Features            │
+│   └─ Preise              │
+│  Spalte 2: Unternehmen   │
+│   ├─ Über uns            │
+│   └─ Team                │
+│                          │
+│ Social Media             │
+│  ├─ Instagram            │
+│  └─ LinkedIn             │
+│                          │
+│ Copyright                │
+│ Legal Links              │
+└──────────────────────────┘
+```
+
+---
+
+### Schritt 4: Heroes generieren (3-5 Min)
 
 ```bash
 > Generate Heroes from Figma Inventory
 ```
 
 **Was passiert:**
-1. Lädt Hero-Komponenten aus Inventory
+1. Findet alle Heroes aus Inventory
 2. **Analysiert Struktur jedes Heroes:**
-   - Wie viele Bilder? → Galerie oder einzelnes Bild
-   - Hat Formular? → Form-Felder hinzufügen
-   - Hat Liste? → Feature-Array hinzufügen
-3. **Generiert conditional Fields:**
-   - Typ-Auswahl Dropdown
-   - Felder werden dynamisch geladen
-4. Speichert unter `/src/heros/Header1/index.tsx`
-5. Erstellt `/src/heros/config.ts` mit allen conditionals
-6. Updated `/src/heros/RenderHero.tsx`
+   - Anzahl Bilder → Typ bestimmen
+   - Hat Formular? → Form-Felder
+   - Hat Liste? → Feature-Array
+3. **Generiert conditional Fields**
+4. Speichert unter `/src/heros/`
 
-**Dauer:** ~5 Minuten
-
-**Output:**
+**Admin-Panel:**
 ```
-src/heros/
-├── Header1/
-│   └── index.tsx       ← Hero mit Bild + 2 Buttons
-├── Header2/
-│   └── index.tsx       ← Hero mit Galerie
-├── Header3/
-│   └── index.tsx       ← Hero mit Features
-├── config.ts           ← ✨ Conditional Fields!
-└── RenderHero.tsx      ← Mapping
+Pages → Hero Section
+
+Hero-Typ: [Dropdown ▼]
+ ├─ Header1 - Mit Bild        ← Auswahl!
+ ├─ Header2 - Galerie
+ └─ Header3 - Features
+
+↓ Conditional Fields erscheinen:
+
+Titel *
+Beschreibung              ← nur für Header1
+Bild                      ← nur für Header1
+Haupt-Button              ← nur für Header1
+Zweiter Button            ← nur für Header1
 ```
 
 ---
 
-### Schritt 3: Blocks generieren 🏗️
+### Schritt 5: Blocks generieren (5-8 Min)
 
 ```bash
 > Generate Blocks from Figma Inventory
 ```
 
 **Was passiert:**
-1. Generiert restliche Komponenten (außer Heroes)
-2. Speichert unter `/src/blocks/`
-3. Registriert in Pages Collection
-4. Updated PageRenderer
+1. Generiert restliche Komponenten
+2. **Überspringt:** Heroes, Navbar, Footer
+3. Speichert unter `/src/blocks/`
+4. Registriert in Pages Collection
 
-**Dauer:** ~8 Minuten
-
-**Output:**
+**Admin-Panel:**
 ```
-src/blocks/
-├── Layout/
-│   └── FeatureGrid/
-├── CTA/
-│   └── NewsletterCTA/
-└── ... (weitere Kategorien)
-```
+Pages → Layout (Blocks)
 
----
+[+ Block hinzufügen]
 
-## 🎨 Admin-Panel Erlebnis
-
-### Hero-Auswahl mit Conditional Fields
-
-#### 1. Hero-Typ wählen
-```
-Pages → Neue Page → Hero Section
-
-┌─────────────────────────────────────┐
-│ Hero Section                        │
-├─────────────────────────────────────┤
-│                                     │
-│ Hero-Typ: [Dropdown ▼]             │
-│  ├─ Kein Hero                       │
-│  ├─ Header1 - Hero mit Bild         │
-│  ├─ Header2 - Hero mit Galerie      │
-│  ├─ Header3 - Hero mit Features     │
-│  └─ Header4 - Hero mit Formular     │
-│                                     │
-└─────────────────────────────────────┘
-```
-
-#### 2. Wähle "Header1" → Passende Felder erscheinen!
-```
-┌─────────────────────────────────────┐
-│ Hero-Typ: Header1 ✓                 │
-│                                     │
-│ ┌── Immer sichtbar ─────────────┐  │
-│ │ Titel *                        │  │
-│ │ [Ihre Überschrift...]          │  │
-│ └────────────────────────────────┘  │
-│                                     │
-│ ┌── Conditional für Header1 ────┐  │
-│ │ Beschreibung                   │  │ ← Nur für Header1
-│ │ [...]                          │  │
-│ │                                │  │
-│ │ Bild                           │  │ ← Nur für Header1
-│ │ [Upload...]                    │  │
-│ │                                │  │
-│ │ Haupt-Button                   │  │ ← Nur für Header1
-│ │  Text: [...]                   │  │
-│ │  URL: [...]                    │  │
-│ │                                │  │
-│ │ Zweiter Button                 │  │ ← Nur für Header1
-│ │  Text: [...]                   │  │
-│ └────────────────────────────────┘  │
-└─────────────────────────────────────┘
-```
-
-#### 3. Wechsel zu "Header3" → Andere Felder!
-```
-┌─────────────────────────────────────┐
-│ Hero-Typ: Header3 ✓                 │
-│                                     │
-│ Titel *                             │
-│                                     │
-│ ┌── Conditional für Header3 ────┐  │
-│ │ Beschreibung                   │  │
-│ │                                │  │
-│ │ Feature-Liste ✓                │  │ ← NEU!
-│ │  ┌─────────────────────────┐   │  │
-│ │  │ Feature 1               │   │  │
-│ │  │  Text: Schnelle Lieferung│   │  │
-│ │  │  Icon: [truck.svg]       │   │  │
-│ │  ├─────────────────────────┤   │  │
-│ │  │ Feature 2               │   │  │
-│ │  │  Text: 24/7 Support      │   │  │
-│ │  │  Icon: [headset.svg]     │   │  │
-│ │  └─────────────────────────┘   │  │
-│ │  [+ Feature hinzufügen]        │  │
-│ │                                │  │
-│ │ Bild                           │  │
-│ │ Haupt-Button                   │  │
-│ └────────────────────────────────┘  │
-└─────────────────────────────────────┘
+Verfügbare Blocks:
+├── Layout (5 Blocks)
+├── CTA (3 Blocks)
+├── Testimonials (2 Blocks)
+├── Contact (2 Blocks)
+└── ... (weitere)
 ```
 
 ---
 
-## 📊 Beispiel-Projekt
+## 📁 Finale Struktur
+
+Nach vollständiger Generierung:
+
+```
+src/
+├── Header/                  ← Navbar (Global)
+│   ├── Component.tsx
+│   ├── DesktopNav.tsx      ← Separate Desktop-Datei
+│   ├── MobileNav.tsx       ← Separate Mobile-Datei
+│   ├── config.ts
+│   └── index.ts
+│
+├── Footer/                  ← Footer (Global)
+│   ├── Component.tsx
+│   ├── FooterColumns.tsx   ← Separate Spalten-Komponente
+│   ├── FooterBottom.tsx    ← Separate Bottom-Komponente
+│   ├── config.ts
+│   └── index.ts
+│
+├── heros/                   ← Heroes (Pages)
+│   ├── Header1/
+│   ├── Header2/
+│   ├── config.ts           ← ✨ Conditional Fields
+│   └── RenderHero.tsx
+│
+└── blocks/                  ← Content Blocks (Pages)
+    ├── Layout/
+    ├── CTA/
+    └── ... (weitere)
+```
+
+---
+
+## 🎨 Vorteile der Aufteilung
+
+### Navbar (Desktop/Mobile getrennt)
+
+**Vorher (1 Datei):**
+```typescript
+// 300 Zeilen mit Desktop + Mobile vermischt
+// Schwer zu warten
+```
+
+**Nachher (2 Dateien):**
+```typescript
+// DesktopNav.tsx - 80 Zeilen
+// MobileNav.tsx - 100 Zeilen
+// ✅ Übersichtlich
+// ✅ Einfach zu warten
+// ✅ Getrennte Logik
+```
+
+### Footer (Columns/Bottom getrennt)
+
+**Vorher (1 Datei):**
+```typescript
+// 250 Zeilen mit allem zusammen
+```
+
+**Nachher (2 Dateien):**
+```typescript
+// FooterColumns.tsx - 60 Zeilen
+// FooterBottom.tsx - 80 Zeilen  
+// ✅ Klare Verantwortlichkeiten
+// ✅ Wiederverwendbar
+```
+
+---
+
+## 💡 Beispiel-Projekt
 
 ### Dein Figma-Design:
 ```
-Figma File: "Meine Website"
 ├── Homepage
-│   ├── Header 1 (Bild rechts, 2 Buttons)
-│   ├── Features Grid
-│   └── Newsletter CTA
+│   ├── Navigation Bar       → Navbar (Global)
+│   ├── Header 1             → Hero (Conditional)
+│   ├── Features Grid        → Block
+│   ├── Testimonials         → Block
+│   ├── CTA Section          → Block
+│   └── Footer               → Footer (Global)
 ├── About
-│   ├── Header 2 (Galerie mit 4 Bildern)
-│   └── Team Grid
+│   ├── Header 2             → Hero (Conditional)
+│   └── Team Grid            → Block
 └── Contact
-    ├── Header 3 (Formular)
-    └── Contact Form
+    ├── Header 3             → Hero (Conditional)
+    └── Contact Form         → Block
 ```
 
 ### Nach Generierung:
 
-#### Heroes (`/src/heros/`):
-```typescript
-// Header1/index.tsx - Typ: heroWithImage
-export const Header1 = ({ hero }) => (
-  <section>
-    <div className="grid md:grid-cols-2">
-      <div>
-        <h1>{hero.title}</h1>
-        <p>{hero.description}</p>
-        <div>
-          <CMSLink {...hero.primaryCTA} />
-          <CMSLink {...hero.secondaryCTA} />
-        </div>
-      </div>
-      <Media resource={hero.media} />
-    </div>
-  </section>
-)
+**Globals (einmalig):**
+- ✅ Navbar (DesktopNav + MobileNav)
+- ✅ Footer (Columns + Bottom)
 
-// Header2/index.tsx - Typ: heroWithGallery  
-export const Header2 = ({ hero }) => (
-  <section>
-    <h1>{hero.title}</h1>
-    <div className="grid grid-cols-2 gap-4">
-      {hero.mediaGallery.map(item => (
-        <Media resource={item.image} />
-      ))}
-    </div>
-  </section>
-)
+**Heroes (pro Page):**
+- ✅ Header1 (heroWithImage)
+- ✅ Header2 (heroWithGallery)
+- ✅ Header3 (heroWithForm)
 
-// Header3/index.tsx - Typ: heroWithForm
-export const Header3 = ({ hero }) => (
-  <section>
-    <h1>{hero.title}</h1>
-    {hero.showForm && (
-      <form>
-        <input type="email" placeholder="..." />
-        <button>Absenden</button>
-      </form>
-    )}
-  </section>
-)
+**Blocks (wiederverwendbar):**
+- ✅ FeatureGrid
+- ✅ Testimonials
+- ✅ CTASection
+- ✅ TeamGrid
+- ✅ ContactForm
+
+---
+
+## 🚀 Nach der Generierung
+
+### 1. Dev-Server starten
+```bash
+npm run dev
 ```
 
-#### Config (`/src/heros/config.ts`):
-```typescript
-export const heroField = {
-  name: 'hero',
-  type: 'group',
-  fields: [
-    {
-      name: 'type',
-      type: 'select',
-      options: [
-        { label: 'Header1 - Mit Bild', value: 'Header1' },
-        { label: 'Header2 - Galerie', value: 'Header2' },
-        { label: 'Header3 - Mit Form', value: 'Header3' },
-      ]
-    },
-    {
-      name: 'title',
-      type: 'text',
-      // Immer sichtbar
-    },
-    {
-      name: 'description',
-      type: 'textarea',
-      admin: {
-        condition: (data) => 
-          ['Header1', 'Header2', 'Header3'].includes(data?.hero?.type)
-      }
-    },
-    {
-      name: 'media',
-      type: 'upload',
-      admin: {
-        condition: (data) => data?.hero?.type === 'Header1'  // ← Nur Header1!
-      }
-    },
-    {
-      name: 'mediaGallery',
-      type: 'array',
-      admin: {
-        condition: (data) => data?.hero?.type === 'Header2'  // ← Nur Header2!
-      }
-    },
-    {
-      name: 'showForm',
-      type: 'checkbox',
-      admin: {
-        condition: (data) => data?.hero?.type === 'Header3'  // ← Nur Header3!
-      }
-    },
-    // ... weitere conditional fields
-  ]
-}
+### 2. Navbar konfigurieren
+```
+http://localhost:3000/admin/globals/header
+
+1. Logo hochladen
+2. Menü-Links hinzufügen
+3. CTA-Buttons konfigurieren
+4. Speichern
+```
+
+### 3. Footer konfigurieren
+```
+http://localhost:3000/admin/globals/footer
+
+1. Logo + Beschreibung
+2. Spalten erstellen
+3. Social Media Links
+4. Copyright + Legal Links
+5. Speichern
+```
+
+### 4. Erste Page erstellen
+```
+http://localhost:3000/admin/collections/pages/create
+
+1. Slug: "homepage"
+2. Hero-Typ wählen: "Header1"
+   → Felder erscheinen automatisch
+3. Blocks hinzufügen:
+   - Feature Grid
+   - Testimonials
+   - CTA Section
+4. Speichern & Vorschau
 ```
 
 ---
 
-## 💡 Hero-Typ Erkennung
+## ✅ Checkliste
 
-Die Generierung analysiert automatisch die Struktur:
+Nach vollständiger Generierung:
 
-```typescript
-function categorizeHeroType(structure) {
-  // Formular vorhanden?
-  if (structure.inputs.length > 0) {
-    return 'heroWithForm'
-  }
-  
-  // Viele Bilder?
-  if (structure.images.length > 3) {
-    return 'heroWithGallery'
-  }
-  
-  // Liste/Stichpunkte?
-  if (structure.lists.length > 0) {
-    return 'heroWithFeatures'
-  }
-  
-  // Video?
-  if (structure.videos.length > 0) {
-    return 'heroWithVideo'
-  }
-  
-  // Standard: Einzelnes Bild
-  return 'heroWithImage'
-}
-```
+- [ ] **TypeScript validiert:** `npm run type-check`
+- [ ] **Build erfolgreich:** `npm run build`
+- [ ] **Dev-Server läuft:** `npm run dev`
+- [ ] **Navbar konfiguriert:** Admin → Globals → Navigation
+- [ ] **Footer konfiguriert:** Admin → Globals → Footer
+- [ ] **Erste Page erstellt:** Admin → Pages → Create
+- [ ] **Desktop getestet:** Browser > 1024px
+- [ ] **Mobile getestet:** Browser < 768px
+- [ ] **Conditional Fields geprüft:** Hero-Typ wechseln
 
 ---
 
 ## 🎯 Vorteile
 
-### 1. Perfektes UX im Admin
-- ✅ Keine verwirrenden, irrelevanten Felder
-- ✅ Nur die Felder, die für den gewählten Hero relevant sind
-- ✅ Klare Strukturierung
+### 1. Übersichtlichkeit
+- ✅ Navbar: Desktop/Mobile getrennt (je ~100 Zeilen)
+- ✅ Footer: Columns/Bottom getrennt (je ~80 Zeilen)
+- ✅ Statt 1 große Datei → mehrere kleine
 
-### 2. Typ-Sicherheit
-- ✅ TypeScript-Interfaces pro Hero-Typ
-- ✅ Automatische Validierung
-- ✅ IntelliSense im Code
+### 2. Wartbarkeit
+- ✅ Änderungen nur in relevanter Datei
+- ✅ Klare Verantwortlichkeiten
+- ✅ Einfaches Testing
 
-### 3. Performance
-- ✅ Schnellere Ladezeiten (weniger Felder)
-- ✅ Kleinere Datenbank-Queries
-- ✅ Übersichtlicheres Admin-Panel
+### 3. Wiederverwendbarkeit
+- ✅ FooterColumns auch einzeln nutzbar
+- ✅ DesktopNav auch einzeln nutzbar
+- ✅ Flexible Kombinationen
 
-### 4. Wartbarkeit
-- ✅ Klare Trennung Heroes vs. Blocks
-- ✅ Einfache Erweiterung um neue Hero-Typen
-- ✅ Automatisches Update bei Figma-Änderungen
-
----
-
-## 🔧 Technische Details
-
-### Dateistruktur
-```
-src/
-├── heros/
-│   ├── Header1/
-│   │   └── index.tsx          ← React-Komponente
-│   ├── Header2/
-│   │   └── index.tsx
-│   ├── config.ts              ← ✨ Conditional Fields Config
-│   └── RenderHero.tsx         ← Dynamisches Rendering
-│
-├── blocks/
-│   ├── Layout/
-│   ├── CTA/
-│   └── ... (keine Heroes!)
-│
-└── collections/
-    └── Pages/
-        └── config.ts          ← Importiert heroField
-```
-
-### Pages Collection Integration
-```typescript
-// src/collections/Pages/config.ts
-import { heroField } from '@/heros/config'
-
-export const Pages: CollectionConfig = {
-  slug: 'pages',
-  fields: [
-    heroField,  // ← Hero mit conditional fields
-    {
-      name: 'layout',
-      type: 'blocks',
-      blocks: [
-        // Alle anderen Blocks (keine Heroes!)
-      ]
-    }
-  ]
-}
-```
-
----
-
-## 🚀 Vollständiges Beispiel
-
-### 1. Figma scannen
-```bash
-> Fetch Used Figma Components
-```
-
-Output: 45 Komponenten gefunden
-- 3 Heroes (Header 1, 2, 3)
-- 42 andere Komponenten
-
-### 2. Heroes generieren
-```bash
-> Generate Heroes from Figma Inventory
-```
-
-Output:
-```
-✅ 3 Hero-Komponenten generiert
-   - Header1 (heroWithImage)
-   - Header2 (heroWithGallery)
-   - Header3 (heroWithForm)
-
-✅ Conditional fields konfiguriert
-✅ RenderHero.tsx aktualisiert
-```
-
-### 3. Blocks generieren
-```bash
-> Generate Blocks from Figma Inventory
-```
-
-Output:
-```
-✅ 42 Blocks generiert
-   (Heroes ausgeschlossen)
-```
-
-### 4. Im Admin testen
-```bash
-npm run dev
-open http://localhost:3000/admin/collections/pages/create
-```
-
-Test im Admin:
-1. **Hero-Typ wählen:** Header1
-2. **Felder erscheinen:** Titel, Beschreibung, Bild, 2 Buttons
-3. **Hero-Typ ändern:** Header2
-4. **Andere Felder:** Titel, Beschreibung, Galerie (4 Bilder), 1 Button
-
-✅ **Perfekt! Conditional Fields funktionieren!**
-
----
-
-## 🐛 Troubleshooting
-
-### Problem: Heroes werden nicht unter /src/heros/ gespeichert
-```bash
-# Lösung: Prüfe Figma-Komponenten-Namen
-cat FIGMA_INVENTORY.json | grep -i "header"
-
-# Müssen "Header" oder "Hero" im Namen haben
-```
-
-### Problem: Conditional Fields werden nicht angezeigt
-```bash
-# Lösung: Prüfe config.ts
-cat src/heros/config.ts | grep "condition"
-
-# Dev-Server neu starten
-rm -rf .next
-npm run dev
-```
-
-### Problem: Falscher Hero-Typ erkannt
-```bash
-# Lösung: Manuelle Anpassung in config.ts
-# Ändere condition für spezifischen Hero-Typ
-```
+### 4. Performance
+- ✅ Code-Splitting möglich
+- ✅ Kleinere Bundle-Größen
+- ✅ Lazy-Loading einfacher
 
 ---
 
 ## 📚 Dokumentation
 
-Nach erfolgreicher Generierung:
-- `FIGMA_INVENTORY.md` - Alle gescannten Komponenten
+Erstellt nach Generierung:
+- `FIGMA_INVENTORY.md` - Alle Komponenten
 - `BLOCKS_GENERATION_REPORT.md` - Generierungs-Report
-- `src/heros/config.ts` - Hero-Config mit Erklärungen
+- `.cursor/HERO_CONDITIONAL_FIELDS.md` - Hero-Doku
 
 ---
 
 ## 🎉 Fertig!
 
 Du hast jetzt:
-- ✅ **Intelligente Hero-Sections** unter `/src/heros/`
-- ✅ **Conditional Fields** im Admin-Panel
-- ✅ **Automatische Typ-Erkennung**
-- ✅ **Perfektes 1:1-Mapping** zu Figma
-- ✅ **Nur benötigte Blocks** unter `/src/blocks/`
+- ✅ **Navbar** (Desktop + Mobile getrennt)
+- ✅ **Footer** (Columns + Bottom getrennt)
+- ✅ **Heroes** (mit conditional Fields)
+- ✅ **Blocks** (nur verwendete Komponenten)
+- ✅ **Perfektes Admin-UX**
+- ✅ **Wartbare Code-Struktur**
 
 ### Viel Erfolg! 🚀
 
 ---
 
-**Version:** 3.1 - Heroes mit Conditional Fields  
+**Version:** 3.2 - Navbar/Footer Split + Vollständiger Workflow  
 **Letzte Aktualisierung:** 2025-10-16  
-**Special Feature:** Intelligente Hero-Erkennung + Conditional Admin Fields
+**Features:** Separate Desktop/Mobile Navbar, aufgeteilter Footer, Conditional Hero Fields

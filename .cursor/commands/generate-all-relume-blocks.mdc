@@ -115,10 +115,40 @@ sortedCategories.forEach(([cat, info], idx) => {
 
 ---
 
-### PHASE 2: Hero-Generierung (Dauer: ~3-5 Min)
+### PHASE 2: Navbar generieren (Dauer: ~2-3 Min)
 
 ```bash
-# Zuerst Heroes mit conditional fields
+# Navbar mit Desktop/Mobile-Split
+> Generate Navbar from Figma
+```
+
+**Output:** 
+- `/src/Header/DesktopNav.tsx`
+- `/src/Header/MobileNav.tsx`
+- `/src/Header/Component.tsx`
+- `/src/Header/config.ts`
+
+---
+
+### PHASE 3: Footer generieren (Dauer: ~2-3 Min)
+
+```bash
+# Footer mit aufgeteilten Komponenten
+> Generate Footer from Figma
+```
+
+**Output:**
+- `/src/Footer/FooterColumns.tsx`
+- `/src/Footer/FooterBottom.tsx`
+- `/src/Footer/Component.tsx`
+- `/src/Footer/config.ts`
+
+---
+
+### PHASE 4: Heroes generieren (Dauer: ~3-5 Min)
+
+```bash
+# Heroes mit conditional fields
 > Generate Heroes from Figma Inventory
 ```
 
@@ -126,14 +156,14 @@ sortedCategories.forEach(([cat, info], idx) => {
 
 ---
 
-### PHASE 3: Block-Generierung (Dauer: ~5-8 Min)
+### PHASE 5: Blocks generieren (Dauer: ~5-8 Min)
 
 ```bash
-# Dann restliche Blocks
+# Restliche Blocks (ohne Heroes, Navbar, Footer)
 > Generate Blocks from Figma Inventory
 ```
 
-**Output:** Nur Blocks (Heroes ausgeschlossen)
+**Output:** Nur Content-Blocks
 
 Wir generieren in Batches, um Token-Limits und Performance zu optimieren.
 

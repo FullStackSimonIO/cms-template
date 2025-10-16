@@ -1,0 +1,719 @@
+---
+title: 'Generate Footer from Figma'
+description: 'Generiert den Footer aus Figma mit aufgeteilter Component-Struktur für bessere Übersichtlichkeit.'
+---
+
+## 🎯 Ziel
+Erstelle den Footer mit aufgeteilten Komponenten (FooterColumns, FooterBottom) für bessere Wartbarkeit - **aber nur eine Variante im Backend**.
+
+---
+
+## 📋 Voraussetzungen
+
+```bash
+# 1. Figma Inventory muss existieren
+> Fetch Used Figma Components
+
+# 2. Prüfe ob Footer gefunden wurde
+cat FIGMA_INVENTORY.json | grep -i "footer"
+```
+
+---
+
+## 🔄 Footer-Generierungs-Workflow
+
+### Phase 1: Footer aus Inventory laden
+
+```typescript
+// 1. Lade Figma Inventory und finde Footer
+const inventory = JSON.parse(
+  await fs.readFile('FIGMA_INVENTORY.json', 'utf-8')
+)
+
+// Suche nach Footer-Komponenten
+const footerComponents = inventory.relumeMapping.filter(
+  mapping => mapping.category === 'Footer'
+)
+
+if (footerComponents.length === 0) {
+  console.error('❌ Keine Footer-Komponente im Figma gefunden')
+  console.log('💡 Tipp: Komponente sollte "Footer" im Namen haben')
+  process.exit(1)
+}
+
+// Verwende ersten Footer (normalerweise gibt es nur einen)
+const footerMapping = footerComponents[0]
+
+console.log('🦶 Footer gefunden:')
+console.log(\`   - Name: \${footerMapping.figma.name}\`)
+console.log(\`   - Seite: \${footerMapping.figma.page}\`)
+console.log(\`   - Relume-Template: \${footerMapping.relume}\`)
+```
+
+---
+
+### Phase 2: Footer-Struktur analysieren
+
+```typescript
+// 2. Lade Figma-Details für Footer-Analyse
+const figmaDetails = await mcp.getFigmaNode({
+  fileKey: FIGMA_FILE_KEY,
+  nodeId: footerMapping.figma.id,
+})
+
+// Analysiere Footer-Struktur
+const footerStructure = {
+  logo: null,
+  columns: [],
+  socialLinks: [],
+  newsletter: false,
+  copyright: null,
+  legalLinks: [],
+}
+
+// Durchsuche Footer rekursiv
+function analyzeFooterStructure(node, depth = 0) {
+  const nameLower = node.name.toLowerCase()
+  
+  // Logo erkennen
+  if (nameLower.includes('logo') && depth < 3) {
+    footerStructure.logo = {
+      id: node.id,
+      name: node.name,
+    }
+  }
+  
+  // Spalten erkennen (Frames mit Listen)
+  if (nameLower.includes('column') || nameLower.includes('spalte')) {
+    const links = []
+    if (node.children) {
+      node.children.forEach(child => {
+        if (child.type === 'TEXT') {
+          links.push({
+            id: child.id,
+            text: child.characters || child.name,
+          })
+        }
+      })
+    }
+    if (links.length > 0) {
+      footerStructure.columns.push({
+        id: node.id,
+        name: node.name,
+        links: links,
+      })
+    }
+  }
+  
+  // Social Media Links
+  if (nameLower.includes('social') || nameLower.includes('instagram') || 
+      nameLower.includes('facebook') || nameLower.includes('twitter')) {
+    footerStructure.socialLinks.push({
+      id: node.id,
+      name: node.name,
+    })
+  }
+  
+  // Newsletter
+  if (nameLower.includes('newsletter') || nameLower.includes('subscribe')) {
+    footerStructure.newsletter = true
+  }
+  
+  // Copyright
+  if (nameLower.includes('copyright') || nameLower.includes('©')) {
+    footerStructure.copyright = {
+      id: node.id,
+      text: node.characters || node.name,
+    }
+  }
+  
+  // Legal Links (Impressum, Datenschutz, etc.)
+  if (nameLower.includes('impressum') || nameLower.includes('datenschutz') || 
+      nameLower.includes('agb') || nameLower.includes('legal')) {
+    footerStructure.legalLinks.push({
+      id: node.id,
+      text: node.characters || node.name,
+    })
+  }
+  
+  // Rekursiv durch Kinder
+  if (node.children && depth < 5) {
+    node.children.forEach(child => analyzeFooterStructure(child, depth + 1))
+  }
+}
+
+analyzeFooterStructure(figmaDetails)
+
+console.log('\n📊 Footer-Struktur:')
+console.log(\`   - Logo: \${footerStructure.logo ? '✓' : '✗'}\`)
+console.log(\`   - Spalten: \${footerStructure.columns.length}\`)
+console.log(\`   - Social Links: \${footerStructure.socialLinks.length}\`)
+console.log(\`   - Newsletter: \${footerStructure.newsletter ? '✓' : '✗'}\`)
+console.log(\`   - Copyright: \${footerStructure.copyright ? '✓' : '✗'}\`)
+console.log(\`   - Legal Links: \${footerStructure.legalLinks.length}\`)
+```
+
+---
+
+### Phase 3: Footer-Komponenten generieren
+
+```typescript
+// 3. Erstelle Footer-Verzeichnis
+const footerPath = 'src/Footer'
+await fs.mkdir(footerPath, { recursive: true })
+
+console.log('\n🏗️ Generiere Footer-Komponenten...')
+
+// 3.1 Generiere FooterColumns.tsx
+const footerColumnsCode = \`import React from 'react'
+import Link from 'next/link'
+import type { Footer as FooterType } from '@/payload-types'
+
+interface FooterColumnsProps {
+  footer: FooterType
+}
+
+export const FooterColumns: React.FC<FooterColumnsProps> = ({ footer }) => {
+  const { columns } = footer || {}
+  
+  if (!columns || columns.length === 0) return null
+  
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-\${Math.min(columns.length, 4)} gap-8">
+      {columns.map((column, index) => (
+        <div key={index}>
+          {/* Spalten-Überschrift */}
+          {column.heading && (
+            <h3 className="font-semibold text-foreground mb-4">
+              {column.heading}
+            </h3>
+          )}
+          
+          {/* Links */}
+          {column.links && column.links.length > 0 && (
+            <ul className="space-y-3">
+              {column.links.map((link, linkIndex) => (
+                <li key={linkIndex}>
+                  <Link
+                    href={link.url || '#'}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+\`
+
+await fs.writeFile(\`\${footerPath}/FooterColumns.tsx\`, footerColumnsCode)
+console.log('   ✅ FooterColumns.tsx')
+
+// 3.2 Generiere FooterBottom.tsx
+const footerBottomCode = \`import React from 'react'
+import Link from 'next/link'
+import type { Footer as FooterType } from '@/payload-types'
+
+interface FooterBottomProps {
+  footer: FooterType
+}
+
+export const FooterBottom: React.FC<FooterBottomProps> = ({ footer }) => {
+  const { copyright, legalLinks, socialLinks } = footer || {}
+  
+  return (
+    <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t">
+      {/* Copyright */}
+      {copyright && (
+        <p className="text-sm text-muted-foreground">
+          {copyright}
+        </p>
+      )}
+      
+      {/* Legal Links */}
+      {legalLinks && legalLinks.length > 0 && (
+        <ul className="flex items-center gap-6">
+          {legalLinks.map((link, index) => (
+            <li key={index}>
+              <Link
+                href={link.url || '#'}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {link.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      
+      {/* Social Links */}
+      {socialLinks && socialLinks.length > 0 && (
+        <ul className="flex items-center gap-4">
+          {socialLinks.map((link, index) => (
+            <li key={index}>
+              <a
+                href={link.url || '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                aria-label={link.label}
+              >
+                {/* Icon basierend auf Platform */}
+                {link.platform === 'instagram' && (
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                  </svg>
+                )}
+                {link.platform === 'facebook' && (
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                  </svg>
+                )}
+                {link.platform === 'linkedin' && (
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                  </svg>
+                )}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+\`
+
+await fs.writeFile(\`\${footerPath}/FooterBottom.tsx\`, footerBottomCode)
+console.log('   ✅ FooterBottom.tsx')
+
+// 3.3 Generiere Component.tsx (Wrapper)
+const componentCode = \`import React from 'react'
+import { Media } from '@/components/Media'
+import { FooterColumns } from './FooterColumns'
+import { FooterBottom } from './FooterBottom'
+import type { Footer as FooterType } from '@/payload-types'
+
+interface FooterProps {
+  footer: FooterType
+}
+
+export const Footer: React.FC<FooterProps> = ({ footer }) => {
+  const { logo${footerStructure.newsletter ? ', newsletter' : ''} } = footer || {}
+  
+  return (
+    <footer className="border-t bg-muted/50">
+      <div className="container py-12 md:py-16">
+        {/* Top Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 mb-12">
+          {/* Logo + Beschreibung */}
+          <div className="lg:col-span-4">
+            {logo && (
+              <Media 
+                resource={logo} 
+                className="h-8 w-auto mb-4"
+                imgClassName="object-contain object-left"
+              />
+            )}
+            {footer.description && (
+              <p className="text-sm text-muted-foreground max-w-xs">
+                {footer.description}
+              </p>
+            )}
+          </div>
+          
+          {/* Spalten */}
+          <div className="lg:col-span-8">
+            <FooterColumns footer={footer} />
+          </div>
+        </div>
+        
+        ${footerStructure.newsletter ? \`
+        {/* Newsletter Section (optional) */}
+        {newsletter && (
+          <div className="mb-12 p-6 rounded-lg bg-background border">
+            <div className="max-w-md mx-auto text-center">
+              <h3 className="font-semibold text-lg mb-2">
+                {newsletter.heading || 'Newsletter abonnieren'}
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                {newsletter.description || 'Bleib auf dem Laufenden'}
+              </p>
+              <form className="flex gap-2">
+                <input
+                  type="email"
+                  placeholder="Deine E-Mail-Adresse"
+                  className="flex-1 px-4 py-2 rounded-lg border bg-background"
+                />
+                <button
+                  type="submit"
+                  className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90"
+                >
+                  Abonnieren
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+        \` : ''}
+        
+        {/* Bottom Section */}
+        <FooterBottom footer={footer} />
+      </div>
+    </footer>
+  )
+}
+\`
+
+await fs.writeFile(\`\${footerPath}/Component.tsx\`, componentCode)
+console.log('   ✅ Component.tsx (Wrapper)')
+
+// 3.4 Generiere index.ts
+const indexCode = \`export { Footer } from './Component'
+export { FooterColumns } from './FooterColumns'
+export { FooterBottom } from './FooterBottom'
+\`
+
+await fs.writeFile(\`\${footerPath}/index.ts\`, indexCode)
+console.log('   ✅ index.ts')
+```
+
+---
+
+### Phase 4: Footer-Config generieren
+
+```typescript
+// 4. Generiere config.ts für Footer
+const configCode = \`import { GlobalConfig } from 'payload/types'
+
+export const Footer: GlobalConfig = {
+  slug: 'footer',
+  label: 'Footer',
+  admin: {
+    group: 'Globale Einstellungen',
+    description: 'Konfiguriere den Footer der Website',
+  },
+  fields: [
+    // Logo
+    {
+      name: 'logo',
+      type: 'upload',
+      relationTo: 'media',
+      label: 'Logo',
+      admin: {
+        description: 'Logo im Footer',
+      },
+    },
+    
+    // Beschreibung
+    {
+      name: 'description',
+      type: 'textarea',
+      label: 'Beschreibung',
+      admin: {
+        description: 'Kurze Beschreibung unter dem Logo',
+      },
+    },
+    
+    // Spalten
+    {
+      name: 'columns',
+      type: 'array',
+      label: 'Footer-Spalten',
+      labels: {
+        singular: 'Spalte',
+        plural: 'Spalten',
+      },
+      admin: {
+        description: 'Spalten mit Links (max. 4 empfohlen)',
+      },
+      fields: [
+        {
+          name: 'heading',
+          type: 'text',
+          label: 'Überschrift',
+          required: true,
+        },
+        {
+          name: 'links',
+          type: 'array',
+          label: 'Links',
+          fields: [
+            {
+              name: 'label',
+              type: 'text',
+              label: 'Link-Text',
+              required: true,
+            },
+            {
+              name: 'url',
+              type: 'text',
+              label: 'URL',
+              required: true,
+            },
+          ],
+        },
+      ],
+    },
+    
+    ${footerStructure.newsletter ? \`
+    // Newsletter
+    {
+      name: 'newsletter',
+      type: 'group',
+      label: 'Newsletter',
+      admin: {
+        description: 'Newsletter-Anmeldung im Footer',
+      },
+      fields: [
+        {
+          name: 'heading',
+          type: 'text',
+          label: 'Überschrift',
+          defaultValue: 'Newsletter abonnieren',
+        },
+        {
+          name: 'description',
+          type: 'text',
+          label: 'Beschreibung',
+        },
+      ],
+    },
+    \` : ''}
+    
+    // Social Media Links
+    {
+      name: 'socialLinks',
+      type: 'array',
+      label: 'Social Media',
+      labels: {
+        singular: 'Social Link',
+        plural: 'Social Links',
+      },
+      fields: [
+        {
+          name: 'platform',
+          type: 'select',
+          label: 'Plattform',
+          required: true,
+          options: [
+            { label: 'Instagram', value: 'instagram' },
+            { label: 'Facebook', value: 'facebook' },
+            { label: 'LinkedIn', value: 'linkedin' },
+            { label: 'Twitter/X', value: 'twitter' },
+            { label: 'YouTube', value: 'youtube' },
+          ],
+        },
+        {
+          name: 'label',
+          type: 'text',
+          label: 'Label',
+          admin: {
+            description: 'Für Accessibility',
+          },
+        },
+        {
+          name: 'url',
+          type: 'text',
+          label: 'URL',
+          required: true,
+        },
+      ],
+    },
+    
+    // Copyright
+    {
+      name: 'copyright',
+      type: 'text',
+      label: 'Copyright-Text',
+      defaultValue: \`© \${new Date().getFullYear()} Alle Rechte vorbehalten.\`,
+      admin: {
+        description: 'Copyright-Hinweis',
+      },
+    },
+    
+    // Legal Links
+    {
+      name: 'legalLinks',
+      type: 'array',
+      label: 'Rechtliche Links',
+      labels: {
+        singular: 'Link',
+        plural: 'Links',
+      },
+      admin: {
+        description: 'Impressum, Datenschutz, etc.',
+      },
+      fields: [
+        {
+          name: 'label',
+          type: 'text',
+          label: 'Link-Text',
+          required: true,
+        },
+        {
+          name: 'url',
+          type: 'text',
+          label: 'URL',
+          required: true,
+        },
+      ],
+    },
+  ],
+}
+\`
+
+await fs.writeFile(\`\${footerPath}/config.ts\`, configCode)
+console.log('   ✅ config.ts')
+```
+
+---
+
+### Phase 5: Payload Config aktualisieren
+
+```typescript
+// 5. Registriere Footer in payload.config.ts
+const payloadConfigPath = 'src/payload.config.ts'
+const payloadConfig = await fs.readFile(payloadConfigPath, 'utf-8')
+
+// Füge Import hinzu
+const footerImport = \`import { Footer } from './Footer/config'\n\`
+
+// Füge zu globals hinzu
+const updatedPayloadConfig = payloadConfig
+  .replace(
+    /import.*from.*\n/g,
+    match => match + (match.includes('Footer/config') ? '' : footerImport)
+  )
+  .replace(
+    /globals:\s*\[([^\]]*)\]/,
+    (match, content) => {
+      if (content.includes('Footer')) return match
+      return \`globals: [\${content}    Footer,  // ← Footer\n  ]\`
+    }
+  )
+
+await fs.writeFile(payloadConfigPath, updatedPayloadConfig)
+console.log('\n✅ Footer in payload.config.ts registriert')
+```
+
+---
+
+## 🎉 Erfolgsmeldung
+
+```typescript
+console.log('\n' + '='.repeat(80))
+console.log('🦶 FOOTER-GENERIERUNG ABGESCHLOSSEN!')
+console.log('='.repeat(80))
+console.log(\`
+📊 Zusammenfassung:
+   ✅ Footer aus Figma erkannt
+   ✅ Struktur analysiert:
+      - Logo: ${footerStructure.logo ? '✓' : '✗'}
+      - ${footerStructure.columns.length} Spalten
+      - ${footerStructure.socialLinks.length} Social Links
+      - Newsletter: ${footerStructure.newsletter ? '✓' : '✗'}
+      - Copyright: ${footerStructure.copyright ? '✓' : '✗'}
+   
+📁 Generierte Dateien:
+   - src/Footer/Component.tsx (Wrapper)
+   - src/Footer/FooterColumns.tsx (Spalten)
+   - src/Footer/FooterBottom.tsx (Copyright + Legal)
+   - src/Footer/config.ts (PayloadCMS)
+   - src/Footer/index.ts (Exports)
+
+✅ Features:
+   - Responsive Grid-Layout
+   - Spalten-basierte Navigation
+   - Social Media Integration
+   ${footerStructure.newsletter ? '- Newsletter-Anmeldung' : ''}
+   - Legal Links (Impressum, Datenschutz)
+   - Copyright-Hinweis
+
+🎯 Im Admin-Panel:
+   http://localhost:3000/admin/globals/footer
+   
+   Konfiguriere:
+   - Logo + Beschreibung
+   - Footer-Spalten mit Links
+   - Social Media Links
+   ${footerStructure.newsletter ? '- Newsletter-Sektion' : ''}
+   - Copyright & Legal Links
+
+🚀 Nächste Schritte:
+   1. npm run type-check
+   2. npm run dev
+   3. Konfiguriere Footer im Admin
+   4. Teste auf verschiedenen Bildschirmgrößen
+\`)
+console.log('='.repeat(80))
+```
+
+---
+
+## 📁 Dateistruktur
+
+```
+src/Footer/
+├── Component.tsx        ← Wrapper (Top + Columns + Bottom)
+├── FooterColumns.tsx    ← Spalten mit Links
+├── FooterBottom.tsx     ← Copyright + Legal + Social
+├── config.ts            ← PayloadCMS Global Config
+└── index.ts             ← Exports
+```
+
+---
+
+## 🎨 Komponenten-Aufteilung
+
+### Component.tsx (Wrapper)
+- Grid-Layout
+- Logo + Beschreibung
+- FooterColumns
+- Newsletter (optional)
+- FooterBottom
+
+### FooterColumns.tsx
+- Responsive Grid (2-4 Spalten)
+- Spalten-Überschriften
+- Link-Listen
+
+### FooterBottom.tsx
+- Copyright-Text
+- Legal Links (Impressum, Datenschutz)
+- Social Media Icons
+
+---
+
+## 🚀 Verwendung
+
+```bash
+# 1. Figma scannen (falls noch nicht geschehen)
+> Fetch Used Figma Components
+
+# 2. Footer generieren
+> Generate Footer from Figma
+
+# 3. Dev-Server starten
+npm run dev
+
+# 4. Footer konfigurieren
+open http://localhost:3000/admin/globals/footer
+```
+
+Im Admin:
+1. Logo + Beschreibung hinzufügen
+2. Footer-Spalten erstellen
+3. Social Media Links eintragen
+4. Copyright-Text anpassen
+5. Legal Links hinzufügen
+6. Speichern
+
+---
+
+✅ **Footer mit aufgeteilten Komponenten aber nur einer Backend-Variante!**

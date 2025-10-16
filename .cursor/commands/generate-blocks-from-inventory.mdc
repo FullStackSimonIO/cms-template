@@ -52,11 +52,11 @@ if (!inventory.relumeMapping || inventory.relumeMapping.length === 0) {
 // 2. Erstelle Liste der zu generierenden Blocks
 const blocksToGenerate = []
 
-// Automatisch gemappte Komponenten (OHNE Heroes!)
+// Automatisch gemappte Komponenten (OHNE Heroes, Navbar, Footer!)
 for (const mapping of inventory.relumeMapping) {
-  // Heroes werden separat behandelt
-  if (mapping.category === 'Hero') {
-    console.log(`   ⏭️ ${mapping.figma.name} → Hero (wird separat generiert)`)
+  // Heroes, Navbar, Footer werden separat behandelt
+  if (['Hero', 'Navbar', 'Footer'].includes(mapping.category)) {
+    console.log(`   ⏭️ ${mapping.figma.name} → ${mapping.category} (wird separat generiert)`)
     continue
   }
   
