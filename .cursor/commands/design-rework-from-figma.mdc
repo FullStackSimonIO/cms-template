@@ -1,0 +1,473 @@
+---
+title: 'Design Rework from Figma'
+description: 'Extrahiert Design-Tokens aus Figma und aktualisiert globals.css und tailwind.config.ts'
+---
+
+## 🎯 Ziel
+Design-System aus Figma in Tailwind/CSS übertragen:
+- Farben → CSS Variables & Tailwind Config
+- Typografie → Font-Imports & Größen
+- Spacing, Border-Radius → Tailwind Config
+
+---
+
+## 🎨 Workflow
+
+### Schritt 1: Design-Tokens extrahieren
+
+```typescript
+// 1. Lade Figma-File für Style-Analyse
+const figmaFile = await mcp.getFigmaFile({
+  fileKey: FIGMA_FILE_KEY,
+  includeStyles: true,
+  includeVariables: true,
+})
+
+// Sammle alle Styles
+const styles = {
+  colors: new Map(),
+  fonts: new Set(),
+  fontSizes: new Set(),
+  spacing: new Set(),
+  borderRadius: new Set(),
+}
+
+// Analysiere alle Komponenten
+function analyzeStyles(node) {
+  // Farben
+  if (node.fills) {
+    node.fills.forEach(fill => {
+      if (fill.type === 'SOLID') {
+        const { r, g, b, a = 1 } = fill.color
+        const hex = rgbToHex(r * 255, g * 255, b * 255)
+        styles.colors.set(hex, { r, g, b, a })
+      }
+    })
+  }
+  
+  // Typografie
+  if (node.type === 'TEXT') {
+    styles.fonts.add(node.style.fontFamily)
+    styles.fontSizes.add(node.style.fontSize)
+  }
+  
+  // Spacing (aus Padding/Gap)
+  if (node.paddingLeft) styles.spacing.add(node.paddingLeft)
+  if (node.itemSpacing) styles.spacing.add(node.itemSpacing)
+  
+  // Border Radius
+  if (node.cornerRadius) styles.borderRadius.add(node.cornerRadius)
+  
+  // Rekursiv
+  if (node.children) {
+    node.children.forEach(child => analyzeStyles(child))
+  }
+}
+
+figmaFile.document.children.forEach(page => analyzeStyles(page))
+
+console.log('🎨 Design-Tokens extrahiert:')
+console.log(`   - Farben: ${styles.colors.size}`)
+console.log(`   - Fonts: ${styles.fonts.size}`)
+console.log(`   - Font-Größen: ${styles.fontSizes.size}`)
+console.log(`   - Spacing-Werte: ${styles.spacing.size}`)
+console.log(`   - Border-Radius: ${styles.borderRadius.size}`)
+```
+
+---
+
+### Schritt 2: Farben analysieren & kategorisieren
+
+```typescript
+// 2. Kategorisiere Farben
+const colorPalette = {
+  primary: null,
+  secondary: null,
+  accent: null,
+  background: null,
+  foreground: null,
+  muted: null,
+  card: null,
+  border: null,
+  destructive: null,
+}
+
+// Intelligente Farbzuweisung basierend auf Häufigkeit und Helligkeit
+const colorFrequency = new Map()
+styles.colors.forEach((color, hex) => {
+  // Zähle Häufigkeit (würde in realem Code aus Komponenten kommen)
+  colorFrequency.set(hex, (colorFrequency.get(hex) || 0) + 1)
+})
+
+// Sortiere nach Häufigkeit
+const sortedColors = Array.from(colorFrequency.entries())
+  .sort((a, b) => b[1] - a[1])
+  .map(([hex]) => hex)
+
+// Primary = häufigste Farbe (nicht schwarz/weiß)
+colorPalette.primary = sortedColors.find(hex => {
+  const { r, g, b } = styles.colors.get(hex)
+  const isGray = Math.abs(r - g) < 0.1 && Math.abs(g - b) < 0.1
+  return !isGray
+}) || sortedColors[0]
+
+// Background = hellste Farbe
+const bgColor = Array.from(styles.colors.entries())
+  .sort((a, b) => {
+    const lA = getLightness(a[1])
+    const lB = getLightness(b[1])
+    return lB - lA
+  })[0]?.[0]
+
+colorPalette.background = bgColor || '#FFFFFF'
+
+// Foreground = dunkelste Farbe
+const fgColor = Array.from(styles.colors.entries())
+  .sort((a, b) => {
+    const lA = getLightness(a[1])
+    const lB = getLightness(b[1])
+    return lA - lB
+  })[0]?.[0]
+
+colorPalette.foreground = fgColor || '#000000'
+
+console.log('\n🎨 Farb-Palette:')
+Object.entries(colorPalette).forEach(([name, color]) => {
+  if (color) console.log(`   - ${name}: ${color}`)
+})
+
+// Helper
+function getLightness(color) {
+  return (color.r + color.g + color.b) / 3
+}
+
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(x => {
+    const hex = Math.round(x).toString(16)
+    return hex.length === 1 ? '0' + hex : hex
+  }).join('')
+}
+```
+
+---
+
+### Schritt 3: globals.css aktualisieren
+
+```typescript
+// 3. Generiere globals.css
+const globalsCss = `
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Farben */
+    --background: ${hexToHsl(colorPalette.background)};
+    --foreground: ${hexToHsl(colorPalette.foreground)};
+    --card: ${hexToHsl(colorPalette.background)};
+    --card-foreground: ${hexToHsl(colorPalette.foreground)};
+    --popover: ${hexToHsl(colorPalette.background)};
+    --popover-foreground: ${hexToHsl(colorPalette.foreground)};
+    --primary: ${hexToHsl(colorPalette.primary)};
+    --primary-foreground: 0 0% 100%;
+    --secondary: ${hexToHsl(colorPalette.secondary || adjustColor(colorPalette.primary, -10))};
+    --secondary-foreground: ${hexToHsl(colorPalette.foreground)};
+    --muted: ${hexToHsl(adjustColor(colorPalette.background, -5))};
+    --muted-foreground: ${hexToHsl(adjustColor(colorPalette.foreground, 40))};
+    --accent: ${hexToHsl(colorPalette.accent || colorPalette.primary)};
+    --accent-foreground: ${hexToHsl(colorPalette.foreground)};
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: ${hexToHsl(adjustColor(colorPalette.background, -20))};
+    --input: ${hexToHsl(adjustColor(colorPalette.background, -20))};
+    --ring: ${hexToHsl(colorPalette.primary)};
+    --radius: ${Math.max(...Array.from(styles.borderRadius)) || 8}px;
+  }
+
+  .dark {
+    --background: 0 0% 10%;
+    --foreground: 0 0% 95%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 95%;
+    --primary: ${hexToHsl(colorPalette.primary)};
+    --primary-foreground: 0 0% 10%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 65%;
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 95%;
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 95%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: ${hexToHsl(colorPalette.primary)};
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Typografie aus Figma */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+  
+  p, span, div {
+    font-family: var(--font-paragraph);
+  }
+  
+  /* Font-Größen aus Figma */
+  ${Array.from(styles.fontSizes)
+    .sort((a, b) => b - a)
+    .map((size, i) => {
+      const heading = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'][i]
+      if (heading) {
+        return `  ${heading} { font-size: ${size}px; }`
+      }
+    })
+    .filter(Boolean)
+    .join('\n')}
+}
+
+@layer components {
+  /* Rich Text Styles */
+  .prose {
+    @apply text-foreground;
+  }
+  
+  .prose h1, .prose h2, .prose h3, .prose h4 {
+    font-family: var(--font-heading);
+    @apply text-foreground;
+  }
+  
+  .prose p {
+    font-family: var(--font-paragraph);
+  }
+  
+  .prose a {
+    @apply text-primary hover:underline;
+  }
+}
+`
+
+await fs.writeFile('src/app/globals.css', globalsCss)
+console.log('\n✅ globals.css aktualisiert')
+
+// Helper
+function hexToHsl(hex) {
+  // Konvertierung Hex → HSL für CSS Variables
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  if (!result) return '0 0% 0%'
+  
+  let r = parseInt(result[1], 16) / 255
+  let g = parseInt(result[2], 16) / 255
+  let b = parseInt(result[3], 16) / 255
+  
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  let h, s, l = (max + min) / 2
+  
+  if (max === min) {
+    h = s = 0
+  } else {
+    const d = max - min
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+    
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break
+      case g: h = ((b - r) / d + 2) / 6; break
+      case b: h = ((r - g) / d + 4) / 6; break
+    }
+  }
+  
+  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`
+}
+
+function adjustColor(hex, lightness) {
+  // Adjust HSL lightness
+  const hsl = hexToHsl(hex)
+  const [h, s, l] = hsl.split(' ')
+  const newL = Math.max(0, Math.min(100, parseInt(l) + lightness))
+  return `${h} ${s} ${newL}%`
+}
+```
+
+---
+
+### Schritt 4: Fonts importieren
+
+```typescript
+// 4. Erstelle/Aktualisiere fonts.ts
+const fontsArray = Array.from(styles.fonts)
+const headingFont = fontsArray[0] || 'Inter'
+const paragraphFont = fontsArray[1] || fontsArray[0] || 'Inter'
+
+const fontsTsContent = `
+import { ${headingFont.replace(/\s+/g, '_')}, ${paragraphFont.replace(/\s+/g, '_')} } from 'next/font/google'
+
+export const heading = ${headingFont.replace(/\s+/g, '_')}({
+  subsets: ['latin'],
+  variable: '--font-heading',
+  display: 'swap',
+})
+
+export const paragraph = ${paragraphFont.replace(/\s+/g, '_')}({
+  subsets: ['latin'],
+  variable: '--font-paragraph',
+  display: 'swap',
+})
+`
+
+await fs.writeFile('src/app/fonts.ts', fontsTsContent)
+console.log('✅ src/app/fonts.ts erstellt')
+
+// Aktualisiere layout.tsx
+const layoutPath = 'src/app/layout.tsx'
+const layoutContent = await fs.readFile(layoutPath, 'utf-8')
+
+if (!layoutContent.includes('from \'./fonts\'')) {
+  const updatedLayout = layoutContent
+    .replace(
+      /import.*\n/,
+      match => match + `import { heading, paragraph } from './fonts'\n`
+    )
+    .replace(
+      /<html/,
+      `<html className={\`\${heading.variable} \${paragraph.variable}\`}`
+    )
+  
+  await fs.writeFile(layoutPath, updatedLayout)
+  console.log('✅ layout.tsx mit Fonts aktualisiert')
+}
+```
+
+---
+
+### Schritt 5: tailwind.config.ts aktualisieren
+
+```typescript
+// 5. Aktualisiere Tailwind Config
+const tailwindConfig = `
+import type { Config } from 'tailwindcss'
+
+const config: Config = {
+  darkMode: ['class'],
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/blocks/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/heros/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    container: {
+      center: true,
+      padding: '2rem',
+      screens: {
+        '2xl': '1400px',
+      },
+    },
+    extend: {
+      colors: {
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+      },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
+      fontFamily: {
+        heading: ['var(--font-heading)'],
+        paragraph: ['var(--font-paragraph)'],
+      },
+      spacing: {
+        ${Array.from(styles.spacing)
+          .sort((a, b) => a - b)
+          .map(val => `'${val}': '${val}px',`)
+          .join('\n        ')}
+      },
+    },
+  },
+  plugins: [require('tailwindcss-animate'), require('@tailwindcss/typography')],
+}
+
+export default config
+`
+
+await fs.writeFile('tailwind.config.mjs', tailwindConfig)
+console.log('✅ tailwind.config.mjs aktualisiert')
+```
+
+---
+
+## 🎉 Erfolgsmeldung
+
+```typescript
+console.log('\n' + '='.repeat(80))
+console.log('🎨 DESIGN REWORK ABGESCHLOSSEN!')
+console.log('='.repeat(80))
+console.log(`
+✅ Aktualisierte Dateien:
+   - src/app/globals.css (Farben, Typografie)
+   - src/app/fonts.ts (${headingFont}, ${paragraphFont})
+   - src/app/layout.tsx (Font-Integration)
+   - tailwind.config.mjs (Theme, Spacing, Colors)
+
+🎨 Design-System:
+   - ${styles.colors.size} Farben extrahiert
+   - ${styles.fonts.size} Fonts importiert
+   - ${styles.fontSizes.size} Font-Größen definiert
+   - ${styles.spacing.size} Spacing-Werte hinzugefügt
+
+🚀 Nächster Schritt:
+   cursor> Style Buttons from Figma
+`)
+console.log('='.repeat(80))
+```
+
+---
+
+✅ **Design-System aus Figma erfolgreich in Tailwind übertragen!**
