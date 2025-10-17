@@ -1,0 +1,559 @@
+---
+description: Alle Hero Komponenten aus Relume GitHub laden und konvertieren
+---
+
+# Schritt 3: Heroes erstellen
+
+## Input
+- Props: `heroes` (z.B. ["Header1", "Header2", "HeroHeader5"])
+- Build Config: `.temp/build-config.json`
+
+## WICHTIG: Naming Convention
+
+**Relume Repo:** Alle Hero-Komponenten heißen `HeroHeader{N}` im Ordner `Header/`
+**Input Props:** Können sein:
+- `Header1` → wird zu `HeroHeader1`
+- `HeroHeader5` → bleibt `HeroHeader5`
+
+## Aufgaben
+
+### 1. Alle Hero Komponenten von GitHub laden
+
+```typescript
+// Lade Build Config
+const config = JSON.parse(fs.readFileSync('.temp/build-config.json'));
+const heroesConfig = config.components.heroes;
+
+console.log(`📥 Lade ${heroesConfig.length} Heroes von GitHub...`);
+
+const heroAnalysis = [];
+
+for (const hero of heroesConfig) {
+  console.log(`   Loading: ${hero.name} (${hero.path})`);
+  
+  // GitHub MCP Call
+  const heroCode = await mcp.tools.github.read_file({
+    owner: config.relume.owner,
+    repo: config.relume.repo,
+    path: hero.path,
+    branch: config.relume.branch
+  });
+  
+  // Speichern für Analyse
+  fs.writeFileSync(
+    `.temp/relume-components/heroes/${hero.name}.tsx`,
+    heroCode
+  );
+  
+  // Analysiere Komponente
+  const analysis = {
+    name: hero.name,
+    originalName: hero.originalName,
+    hasImage: heroCode.includes('img') || heroCode.includes('Image'),
+    hasVideo: heroCode.includes('video') || heroCode.includes('Video'),
+    hasFeatures: heroCode.includes('feature') || heroCode.includes('Feature'),
+    hasStats: heroCode.includes('stat') || heroCode.includes('number'),
+    buttonCount: (heroCode.match(/button|Button/gi) || []).length,
+    hasTestimonial: heroCode.includes('testimonial') || heroCode.includes('quote'),
+  };
+  
+  heroAnalysis.push(analysis);
+  console.log(`   ✅ ${hero.name} geladen und analysiert`);
+}
+
+// Speichere Gesamt-Analyse
+fs.writeFileSync(
+  '.temp/analysis/heroes-analysis.json',
+  JSON.stringify(heroAnalysis, null, 2)
+);
+
+console.log('✅ Alle Heroes geladen und analysiert');
+```
+
+### 2. Shared Hero Block Config erstellen
+
+```typescript
+// filepath: src/heroes/config.ts
+import type { Block } from 'payload'
+
+export const HeroBlock: Block = {
+  slug: 'hero',
+  labels: {
+    singular: 'Hero Sektion',
+    plural: 'Hero Sektionen',
+  },
+  fields: [
+    {
+      name: 'heroType',
+      type: 'select',
+      label: 'Hero Typ',
+      required: true,
+      admin: {
+        description: 'Wähle den Stil der Hero-Sektion',
+      },
+      options: [
+        // Dynamisch generiert aus heroAnalysis
+        ...heroAnalysis.map(hero => ({
+          label: hero.name.replace(/([A-Z])/g, ' $1').trim(),
+          value: hero.name.charAt(0).toLowerCase() + hero.name.slice(1),
+        }))
+      ],
+    },
+    {
+      name: 'heading',
+      type: 'text',
+      label: 'Hauptüberschrift',
+      required: true,
+      admin: {
+        description: 'Die große Überschrift der Hero-Sektion',
+      },
+    },
+    {
+      name: 'subheading',
+      type: 'richText',
+      label: 'Unterüberschrift',
+      admin: {
+        description: 'Beschreibungstext unter der Hauptüberschrift',
+      },
+    },
+    {
+      name: 'image',
+      type: 'upload',
+      relationTo: 'media',
+      label: 'Bild',
+      admin: {
+        description: 'Haupt-Bild der Hero-Sektion',
+        condition: (data) => {
+          // Zeige nur für Heroes die ein Bild haben
+          const heroesWithImage = heroAnalysis
+            .filter(h => h.hasImage)
+            .map(h => h.name.charAt(0).toLowerCase() + h.name.slice(1));
+          return heroesWithImage.includes(data.heroType);
+        },
+      },
+    },
+    {
+      name: 'backgroundVideo',
+      type: 'upload',
+      relationTo: 'media',
+      label: 'Hintergrund-Video',
+      admin: {
+        description: 'Video als Hintergrund',
+        condition: (data) => {
+          const heroesWithVideo = heroAnalysis
+            .filter(h => h.hasVideo)
+            .map(h => h.name.charAt(0).toLowerCase() + h.name.slice(1));
+          return heroesWithVideo.includes(data.heroType);
+        },
+      },
+    },
+    {
+      name: 'buttons',
+      type: 'array',
+      label: 'Call-to-Action Buttons',
+      maxRows: 3,
+      admin: {
+        description: 'Aktions-Buttons (max. 3)',
+      },
+      fields: [
+        {
+          name: 'text',
+          type: 'text',
+          label: 'Button Text',
+          required: true,
+        },
+        {
+          name: 'link',
+          type: 'group',
+          label: 'Link',
+          fields: [
+            {
+              name: 'type',
+              type: 'select',
+              options: [
+                { label: 'Interne Seite', value: 'page' },
+                { label: 'Externe URL', value: 'url' },
+              ],
+              defaultValue: 'page',
+            },
+            {
+              name: 'page',
+              type: 'relationship',
+              relationTo: 'pages',
+              admin: {
+                condition: (_, siblingData) => siblingData?.type === 'page',
+              },
+            },
+            {
+              name: 'url',
+              type: 'text',
+              admin: {
+                condition: (_, siblingData) => siblingData?.type === 'url',
+              },
+            },
+          ],
+        },
+        {
+          name: 'variant',
+          type: 'select',
+          label: 'Button Stil',
+          admin: {
+            description: 'Wähle den Stil des Buttons (ShadCN Variant)',
+          },
+          options: [
+            { label: 'Standard (gefüllt)', value: 'default' },
+            { label: 'Outline', value: 'outline' },
+            { label: 'Ghost (transparent)', value: 'ghost' },
+            { label: 'Link', value: 'link' },
+          ],
+          defaultValue: 'default',
+        },
+      ],
+    },
+    {
+      name: 'features',
+      type: 'array',
+      label: 'Feature-Liste',
+      admin: {
+        description: 'Liste von Features oder Vorteilen',
+        condition: (data) => {
+          const heroesWithFeatures = heroAnalysis
+            .filter(h => h.hasFeatures)
+            .map(h => h.name.charAt(0).toLowerCase() + h.name.slice(1));
+          return heroesWithFeatures.includes(data.heroType);
+        },
+      },
+      fields: [
+        {
+          name: 'icon',
+          type: 'upload',
+          relationTo: 'media',
+          label: 'Icon',
+        },
+        {
+          name: 'title',
+          type: 'text',
+          label: 'Titel',
+        },
+        {
+          name: 'description',
+          type: 'textarea',
+          label: 'Beschreibung',
+        },
+      ],
+    },
+    {
+      name: 'stats',
+      type: 'array',
+      label: 'Statistiken',
+      maxRows: 4,
+      admin: {
+        description: 'Zahlen und Statistiken',
+        condition: (data) => {
+          const heroesWithStats = heroAnalysis
+            .filter(h => h.hasStats)
+            .map(h => h.name.charAt(0).toLowerCase() + h.name.slice(1));
+          return heroesWithStats.includes(data.heroType);
+        },
+      },
+      fields: [
+        {
+          name: 'number',
+          type: 'text',
+          label: 'Zahl',
+          required: true,
+        },
+        {
+          name: 'label',
+          type: 'text',
+          label: 'Beschriftung',
+          required: true,
+        },
+      ],
+    },
+    {
+      name: 'testimonial',
+      type: 'group',
+      label: 'Testimonial',
+      admin: {
+        condition: (data) => {
+          const heroesWithTestimonial = heroAnalysis
+            .filter(h => h.hasTestimonial)
+            .map(h => h.name.charAt(0).toLowerCase() + h.name.slice(1));
+          return heroesWithTestimonial.includes(data.heroType);
+        },
+      },
+      fields: [
+        {
+          name: 'quote',
+          type: 'textarea',
+          label: 'Zitat',
+        },
+        {
+          name: 'author',
+          type: 'text',
+          label: 'Autor',
+        },
+        {
+          name: 'role',
+          type: 'text',
+          label: 'Position/Rolle',
+        },
+        {
+          name: 'avatar',
+          type: 'upload',
+          relationTo: 'media',
+          label: 'Foto',
+        },
+      ],
+    },
+  ],
+}
+```
+
+### 3. Einzelne Hero Komponenten erstellen
+
+Für jede Hero in `heroesConfig`:
+
+```typescript
+// filepath: src/heroes/{HeroName}/index.tsx
+'use client'
+
+import React from 'react'
+import type { HeroBlock as HeroBlockType } from '@/payload-types'
+import { Button } from '@/components/ui/button'
+import { RichText } from '@/components/RichText'
+import { Media } from '@/components/Media'
+import { CMSLink } from '@/components/CMSLink'
+
+interface {HeroName}Props {
+  data: HeroBlockType
+}
+
+export const {HeroName}: React.FC<{HeroName}Props> = ({ data }) => {
+  // WICHTIG: Original Relume Code hier einfügen
+  // NUR Datenquelle ändern - KEINE Styles ändern!
+  // Tailwind Classes EXAKT beibehalten
+  // Buttons NUR mit ShadCN Variants
+  
+  return (
+    <section className="px-[5%] py-16 md:py-24 lg:py-28">
+      <div className="container">
+        <div className="grid grid-cols-1 gap-x-20 gap-y-12 md:gap-y-16 lg:grid-cols-2 lg:items-center">
+          {/* Content */}
+          <div>
+            <h1 className="mb-5 text-6xl font-bold md:mb-6 md:text-9xl lg:text-10xl">
+              {data.heading}
+            </h1>
+            <div className="md:text-md">
+              <RichText content={data.subheading} />
+            </div>
+            
+            {/* Buttons - NUR ShadCN Variants! */}
+            {data.buttons && data.buttons.length > 0 && (
+              <div className="mt-6 flex flex-wrap gap-4 md:mt-8">
+                {data.buttons.map((button, index) => (
+                  <Button
+                    key={index}
+                    variant={button.variant}
+                    asChild
+                  >
+                    <CMSLink {...button.link}>
+                      {button.text}
+                    </CMSLink>
+                  </Button>
+                ))}
+              </div>
+            )}
+            
+            {/* Features (conditional) */}
+            {data.features && data.features.length > 0 && (
+              <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2">
+                {data.features.map((feature, index) => (
+                  <div key={index} className="flex gap-4">
+                    {feature.icon && (
+                      <Media resource={feature.icon} className="h-6 w-6" />
+                    )}
+                    <div>
+                      <h3 className="font-semibold">{feature.title}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {feature.description}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Stats (conditional) */}
+            {data.stats && data.stats.length > 0 && (
+              <div className="mt-10 grid grid-cols-2 gap-8 md:grid-cols-4">
+                {data.stats.map((stat, index) => (
+                  <div key={index}>
+                    <div className="text-4xl font-bold">{stat.number}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {stat.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          {/* Media */}
+          <div>
+            {data.image && (
+              <Media 
+                resource={data.image} 
+                className="w-full object-cover rounded-lg"
+              />
+            )}
+            {data.backgroundVideo && (
+              <Media 
+                resource={data.backgroundVideo} 
+                className="w-full object-cover rounded-lg"
+              />
+            )}
+          </div>
+        </div>
+        
+        {/* Testimonial (conditional) */}
+        {data.testimonial && (
+          <div className="mt-16 text-center">
+            <blockquote className="text-xl italic">
+              "{data.testimonial.quote}"
+            </blockquote>
+            <div className="mt-4 flex items-center justify-center gap-4">
+              {data.testimonial.avatar && (
+                <Media 
+                  resource={data.testimonial.avatar} 
+                  className="h-12 w-12 rounded-full"
+                />
+              )}
+              <div className="text-left">
+                <div className="font-semibold">{data.testimonial.author}</div>
+                <div className="text-sm text-muted-foreground">
+                  {data.testimonial.role}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+```
+
+### 4. Hero Renderer erstellen
+
+```typescript
+// filepath: src/heroes/index.tsx
+// Import all heroes
+${heroesConfig.map(hero => `import { ${hero.name} } from './${hero.name}'`).join('\n')}
+
+export const HeroComponents = {
+  ${heroesConfig.map(hero => {
+    const camelCase = hero.name.charAt(0).toLowerCase() + hero.name.slice(1);
+    return `${camelCase}: ${hero.name}`;
+  }).join(',\n  ')}
+}
+
+interface HeroRendererProps {
+  data: any
+}
+
+export const HeroRenderer: React.FC<HeroRendererProps> = ({ data }) => {
+  const Component = HeroComponents[data.heroType]
+  
+  if (!Component) {
+    console.warn(\`Hero type "\${data.heroType}" not found\`)
+    return null
+  }
+  
+  return <Component data={data} />
+}
+```
+
+### 5. Migration erstellen
+
+```bash
+npm run payload migrate:create -- --name add-hero-block
+
+echo "Migration erstellt, führe aus..."
+npm run payload migrate
+
+echo "✅ Migration erfolgreich ausgeführt"
+```
+
+### 6. In payload.config.ts registrieren
+
+```typescript
+// filepath: src/payload.config.ts
+// ...existing code...
+import { HeroBlock } from './heroes/config'
+
+export default buildConfig({
+  // ...existing code...
+  collections: [
+    {
+      slug: 'pages',
+      // ...existing code...
+      fields: [
+        {
+          name: 'layout',
+          type: 'blocks',
+          blocks: [
+            HeroBlock,
+            // ...existing code...
+          ],
+        },
+      ],
+    },
+  ],
+})
+```
+
+### 7. Git Commit
+
+```bash
+git add src/heroes/
+git add src/payload.config.ts
+git add src/migrations/
+
+HEROES_LIST=$(echo ${heroesConfig.map(h => h.originalName).join(', ')})
+
+git commit -m "feat(heroes): add hero sections
+
+Source: relume/Header/HeroHeader*.tsx
+Heroes added: ${HEROES_LIST}
+
+Components:
+${heroesConfig.map(h => \`- ${h.name} (${h.path})\`).join('\n')}
+
+✅ Shared config with conditional fields
+✅ Original Relume designs preserved
+✅ All Tailwind classes maintained
+✅ ShadCN Button variants used
+✅ Migration executed
+✅ Registered in payload.config.ts"
+
+echo "✅ Git Commit erstellt"
+```
+
+## Erfolgskriterien
+
+- [ ] Alle Heroes erfolgreich von GitHub geladen
+- [ ] Namen korrekt normalisiert (Header1 → HeroHeader1)
+- [ ] Shared config.ts mit smart conditionals
+- [ ] Jede Hero hat eigene Komponente in /heroes/{HeroName}/
+- [ ] HeroRenderer funktioniert
+- [ ] Nur ShadCN Button Variants verwendet (keine Custom-Styles!)
+- [ ] Alle Tailwind Classes exakt beibehalten
+- [ ] Nur Datenquelle geändert (hardcoded → data props)
+- [ ] Migration erfolgreich ausgeführt
+- [ ] In payload.config.ts registriert
+- [ ] Git Commit erstellt
+
+## Nächster Schritt
+`.cursor/commands/04-create-blocks.mdc`

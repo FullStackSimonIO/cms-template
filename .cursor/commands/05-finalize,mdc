@@ -1,0 +1,532 @@
+---
+description: Projekt finalisieren, testen und mergen
+---
+
+# Schritt 5: Finalisierung
+
+## Aufgaben
+
+### 1. Vollständigkeits-Check
+
+```typescript
+// Lade Build Config
+const config = JSON.parse(fs.readFileSync('.temp/build-config.json'));
+
+console.log('🔍 Vollständigkeits-Check...\n');
+
+// Check Navbar
+const navbarExists = fs.existsSync('src/Header/MobileNav.tsx') &&
+                     fs.existsSync('src/Header/DesktopNav.tsx') &&
+                     fs.existsSync('src/Header/config.ts');
+console.log(`${navbarExists ? '✅' : '❌'} Navbar (MobileNav, DesktopNav, config)`);
+
+// Check Footer
+const footerExists = fs.existsSync('src/Footer/MobileFooter.tsx') &&
+                     fs.existsSync('src/Footer/DesktopFooter.tsx') &&
+                     fs.existsSync('src/Footer/config.ts');
+console.log(`${footerExists ? '✅' : '❌'} Footer (MobileFooter, DesktopFooter, config)`);
+
+// Check Heroes
+let allHeroesExist = true;
+for (const hero of config.components.heroes) {
+  const heroExists = fs.existsSync(`src/heroes/${hero.name}/index.tsx`);
+  console.log(`${heroExists ? '✅' : '❌'} Hero: ${hero.name}`);
+  if (!heroExists) allHeroesExist = false;
+}
+
+// Check Blocks
+let allBlocksExist = true;
+for (const block of config.components.blocks) {
+  const blockExists = fs.existsSync(`src/blocks/${block.category}/${block.name}/Component.tsx`) &&
+                      fs.existsSync(`src/blocks/${block.category}/${block.name}/config.ts`) &&
+                      fs.existsSync(`src/blocks/${block.category}/${block.name}/index.ts`);
+  console.log(`${blockExists ? '✅' : '❌'} Block: ${block.name} (${block.category})`);
+  if (!blockExists) allBlocksExist = false;
+}
+
+// Check payload.config.ts
+const payloadConfig = fs.readFileSync('src/payload.config.ts', 'utf-8');
+const hasHeader = payloadConfig.includes('Header');
+const hasFooter = payloadConfig.includes('Footer');
+const hasHeroBlock = payloadConfig.includes('HeroBlock');
+console.log(`\n${hasHeader ? '✅' : '❌'} Header in payload.config.ts registriert`);
+console.log(`${hasFooter ? '✅' : '❌'} Footer in payload.config.ts registriert`);
+console.log(`${hasHeroBlock ? '✅' : '❌'} HeroBlock in payload.config.ts registriert`);
+
+// Check Migrations
+const migrationsDir = 'src/migrations';
+const migrations = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.ts'));
+console.log(`\n✅ ${migrations.length} Migrationen gefunden`);
+
+const allChecksPass = navbarExists && footerExists && allHeroesExist && 
+                      allBlocksExist && hasHeader && hasFooter && hasHeroBlock;
+
+if (!allChecksPass) {
+  throw new Error('❌ Vollständigkeits-Check fehlgeschlagen. Bitte fehlende Komponenten ergänzen.');
+}
+
+console.log('\n✅ Alle Komponenten vorhanden!\n');
+```
+
+### 2. Finale Migration erstellen
+
+```bash
+npm run payload migrate:create -- --name finalize-website-generation
+
+echo "Migration erstellt, führe aus..."
+npm run payload migrate
+
+echo "✅ Finale Migration erfolgreich ausgeführt"
+```
+
+### 3. TypeScript Build testen
+
+```bash
+echo "🔨 Teste TypeScript Build..."
+
+# Types generieren
+npm run payload generate:types
+
+# Build ausführen
+npm run build
+
+if [ $? -eq 0 ]; then
+  echo "✅ TypeScript Build erfolgreich"
+else
+  echo "❌ TypeScript Build fehlgeschlagen"
+  echo "Bitte Fehler beheben vor Fortsetzung"
+  exit 1
+fi
+```
+
+### 4. Payload Admin testen
+
+```bash
+echo "🚀 Starte Dev Server für Tests..."
+npm run dev &
+DEV_PID=$!
+
+# Warte bis Server läuft
+sleep 10
+
+echo ""
+echo "📋 Manuelle Test-Checkliste:"
+echo ""
+echo "Öffne: http://localhost:3000/admin"
+echo ""
+echo "Teste folgendes:"
+echo "- [ ] Header Global ist editierbar"
+echo "- [ ] Footer Global ist editierbar"
+echo "- [ ] Neue Seite kann erstellt werden"
+echo "- [ ] Hero Block kann zu Seite hinzugefügt werden"
+echo "- [ ] Alle anderen Blocks sind verfügbar"
+echo "- [ ] Alle Blocks sind editierbar"
+echo "- [ ] ShadCN Button Variants funktionieren"
+echo "- [ ] Keine Fehlermeldungen in Console"
+echo "- [ ] Deutsche Labels überall vorhanden"
+echo ""
+echo "Drücke Enter wenn Tests abgeschlossen..."
+read
+
+# Dev Server beenden
+kill $DEV_PID
+```
+
+### 5. Dokumentation generieren
+
+```typescript
+// Lade Config
+const config = JSON.parse(fs.readFileSync('.temp/build-config.json'));
+
+const documentation = `# Website Generierung - Dokumentation
+
+Generiert am: ${new Date().toLocaleString('de-DE')}
+Branch: ${config.branch}
+
+## Konfiguration
+
+### Props
+\`\`\`json
+${JSON.stringify({
+  navbar: config.components.navbar.name,
+  footer: config.components.footer.name,
+  heroes: config.components.heroes.map(h => h.originalName),
+  blocks: config.components.blocks.map(b => b.name)
+}, null, 2)}
+\`\`\`
+
+## Komponenten
+
+### Header
+- **Komponente**: ${config.components.navbar.name}
+- **Quelle**: ${config.components.navbar.path}
+- **Pfad**: \`src/Header/\`
+- **Dateien**: 
+  - MobileNav.tsx
+  - DesktopNav.tsx
+  - config.ts
+  - hooks/revalidateHeader.ts
+- **Global**: \`header\`
+
+### Footer
+- **Komponente**: ${config.components.footer.name}
+- **Quelle**: ${config.components.footer.path}
+- **Pfad**: \`src/Footer/\`
+- **Dateien**:
+  - MobileFooter.tsx
+  - DesktopFooter.tsx
+  - config.ts
+  - hooks/revalidateFooter.ts
+- **Global**: \`footer\`
+
+### Heroes
+
+${config.components.heroes.map(hero => `#### ${hero.originalName}
+- **Komponente**: ${hero.name}
+- **Quelle**: ${hero.path}
+- **Pfad**: \`src/heroes/${hero.name}/\`
+- **Block Slug**: \`hero\``).join('\n\n')}
+
+**Shared Config**: \`src/heroes/config.ts\`
+- Conditionals für verschiedene Hero-Typen
+- ShadCN Button Variants
+
+### Blocks
+
+${Object.entries(
+  config.components.blocks.reduce((acc, block) => {
+    if (!acc[block.category]) acc[block.category] = [];
+    acc[block.category].push(block);
+    return acc;
+  }, {})
+).map(([category, blocks]) => `#### ${category}
+${blocks.map(b => `- **${b.name}**
+  - Quelle: ${b.path}
+  - Pfad: \`src/blocks/${b.category}/${b.name}/\`
+  - Block Slug: \`${b.name.toLowerCase()}\``).join('\n')}`).join('\n\n')}
+
+## Migrationen
+
+${fs.readdirSync('src/migrations')
+  .filter(f => f.endsWith('.ts'))
+  .map(m => `- ${m}`)
+  .join('\n')}
+
+## Verwendung
+
+### Neue Seite erstellen
+
+1. Gehe zu Admin Panel: \`http://localhost:3000/admin\`
+2. Navigiere zu "Seiten"
+3. Klicke "Neue Seite erstellen"
+4. Füge Blocks hinzu:
+   - Hero (wähle Typ aus ${config.components.heroes.length} verfügbaren)
+   - Content Blocks (${config.components.blocks.length} verfügbar)
+5. Speichern und veröffentlichen
+
+### Header/Footer bearbeiten
+
+1. Gehe zu "Globale Einstellungen"
+2. Wähle "Kopfzeile" oder "Fußzeile"
+3. Bearbeite Felder
+4. Buttons nutzen ShadCN Variants (default, outline, ghost, link)
+5. Speichern
+
+## Button Styling
+
+**WICHTIG**: Alle Buttons verwenden ausschließlich ShadCN UI Variants:
+- \`default\` - Standard Button (gefüllt)
+- \`outline\` - Button mit Rahmen
+- \`ghost\` - Transparenter Button
+- \`link\` - Link-Style Button
+
+**KEINE** Custom-Styles! Nur die Variants aus \`components/ui/button.tsx\`.
+
+## Design Preservation
+
+✅ **Alle Original Relume Designs beibehalten**
+- Tailwind Classes exakt übernommen
+- Layouts nicht verändert
+- Spacing beibehalten
+- Responsive Breakpoints unverändert
+
+## Nächste Schritte
+
+- [ ] Inhalte in Admin Panel eingeben
+- [ ] Header Logo hochladen
+- [ ] Navigation Links konfigurieren
+- [ ] Footer Spalten füllen
+- [ ] Erste Seiten mit Heroes und Blocks erstellen
+- [ ] SEO Felder konfigurieren (falls vorhanden)
+- [ ] Media Library mit Bildern füllen
+- [ ] Test-Content erstellen
+- [ ] Production Deployment vorbereiten
+
+## Relume Repository
+
+- Owner: ${config.relume.owner}
+- Repo: ${config.relume.repo}
+- Branch: ${config.relume.branch}
+
+## Technologie Stack
+
+- PayloadCMS 3.0
+- Next.js 14
+- TypeScript
+- Tailwind CSS
+- ShadCN UI Components
+- Relume Component Library
+`;
+
+fs.writeFileSync('WEBSITE_GENERATION.md', documentation);
+console.log('✅ Dokumentation erstellt: WEBSITE_GENERATION.md');
+```
+
+### 6. README.md aktualisieren
+
+```typescript
+// filepath: README.md
+const existingReadme = fs.readFileSync('README.md', 'utf-8');
+
+const componentSection = `
+
+## Automatisch generierte Komponenten
+
+Diese Website wurde automatisch generiert mit folgenden Relume Komponenten:
+
+### Navigation & Footer
+- **Header**: ${config.components.navbar.name} (Mobile + Desktop)
+- **Footer**: ${config.components.footer.name} (Mobile + Desktop)
+
+### Hero Sektionen (${config.components.heroes.length})
+${config.components.heroes.map(h => `- ${h.originalName}`).join('\n')}
+
+### Content Blocks (${config.components.blocks.length})
+${Object.entries(
+  config.components.blocks.reduce((acc, block) => {
+    if (!acc[block.category]) acc[block.category] = [];
+    acc[block.category].push(block.name);
+    return acc;
+  }, {})
+).map(([category, blocks]) => 
+  `- **${category}**: ${blocks.join(', ')}`
+).join('\n')}
+
+Siehe [WEBSITE_GENERATION.md](./WEBSITE_GENERATION.md) für vollständige Dokumentation.
+
+## Button Styling
+
+Alle Buttons nutzen ShadCN UI Variants (\`default\`, \`outline\`, \`ghost\`, \`link\`).
+Keine Custom-Styles - nur \`components/ui/button.tsx\` Variants.
+`;
+
+const updatedReadme = existingReadme + componentSection;
+fs.writeFileSync('README.md', updatedReadme);
+console.log('✅ README.md aktualisiert');
+```
+
+### 7. Package.json Scripts hinzufügen
+
+```json
+// filepath: package.json
+{
+  "scripts": {
+    // ...existing code...
+    "generate:website": "cursor run .cursor/tasks.mdc",
+    "generate:navbar": "cursor run .cursor/commands/01-create-navbar.mdc",
+    "generate:footer": "cursor run .cursor/commands/02-create-footer.mdc",
+    "generate:heroes": "cursor run .cursor/commands/03-create-heroes.mdc",
+    "generate:blocks": "cursor run .cursor/commands/04-create-blocks.mdc",
+    "generate:finalize": "cursor run .cursor/commands/05-finalize.mdc"
+  }
+}
+```
+
+### 8. Git Finalisierung
+
+```bash
+# Finale Änderungen adden
+git add .
+git add WEBSITE_GENERATION.md
+git add README.md
+git add package.json
+
+# Finaler Commit
+git commit -m "docs: finalize website generation
+
+Complete documentation added:
+- WEBSITE_GENERATION.md with full component list
+- README.md updated with component overview
+- package.json scripts for regeneration
+
+Build Status:
+✅ TypeScript build successful
+✅ All migrations executed
+✅ ${config.components.heroes.length} Heroes
+✅ ${config.components.blocks.length} Blocks
+✅ ShadCN Button variants used
+✅ Original Relume designs preserved
+✅ German UX labels throughout
+
+Ready for:
+- Content creation in Admin Panel
+- Production deployment"
+
+echo "✅ Finaler Commit erstellt"
+
+# Branch pushen
+git push origin HEAD
+
+echo ""
+echo "📊 Generation Summary:"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Branch: ${config.branch}"
+echo "Navbar: ${config.components.navbar.name}"
+echo "Footer: ${config.components.footer.name}"
+echo "Heroes: ${config.components.heroes.length}"
+echo "Blocks: ${config.components.blocks.length}"
+echo "Migrations: $(ls src/migrations/*.ts | wc -l)"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "🎉 Website Generation abgeschlossen!"
+echo ""
+echo "Nächste Schritte:"
+echo "1. Feature Branch in main mergen"
+echo "2. Content im Admin Panel erstellen"
+echo "3. Production Deployment"
+```
+
+### 9. Success Report generieren
+
+```typescript
+// filepath: .temp/generation-report.json
+const report = {
+  timestamp: new Date().toISOString(),
+  branch: config.branch,
+  status: 'success',
+  relume: {
+    owner: config.relume.owner,
+    repo: config.relume.repo,
+    branch: config.relume.branch,
+  },
+  components: {
+    navbar: config.components.navbar.name,
+    footer: config.components.footer.name,
+    heroes: config.components.heroes.map(h => h.originalName),
+    blocks: config.components.blocks.map(b => b.name),
+  },
+  stats: {
+    totalComponents: 2 + config.components.heroes.length + config.components.blocks.length,
+    heroes: config.components.heroes.length,
+    blocks: config.components.blocks.length,
+    migrations: fs.readdirSync('src/migrations').filter(f => f.endsWith('.ts')).length,
+    categories: Object.keys(
+      config.components.blocks.reduce((acc, b) => {
+        acc[b.category] = true;
+        return acc;
+      }, {})
+    ),
+  },
+  files: {
+    created: countCreatedFiles(),
+    modified: ['payload.config.ts', 'README.md', 'package.json'],
+  },
+  features: {
+    shadcnButtons: true,
+    germanLabels: true,
+    relumeDesignPreserved: true,
+    tailwindClassesPreserved: true,
+    responsiveDesign: true,
+    migrationsExecuted: true,
+  },
+  nextSteps: [
+    'Merge feature branch into main',
+    'Fill Admin Panel with content',
+    'Upload logo and images to Media Library',
+    'Create initial pages with Heroes and Blocks',
+    'Configure Header and Footer globals',
+    'Test responsive design',
+    'Configure SEO settings',
+    'Deploy to production',
+  ],
+};
+
+fs.writeFileSync(
+  '.temp/generation-report.json',
+  JSON.stringify(report, null, 2)
+);
+
+console.log('✅ Success Report generiert: .temp/generation-report.json');
+
+// Ausgabe auf Console
+console.log('\n' + JSON.stringify(report, null, 2));
+```
+
+### 10. Merge Anleitung ausgeben
+
+```bash
+echo ""
+echo "═══════════════════════════════════════════════════════════════"
+echo "  🎊 WEBSITE GENERATION ERFOLGREICH ABGESCHLOSSEN! 🎊"
+echo "═══════════════════════════════════════════════════════════════"
+echo ""
+echo "📁 Branch: ${config.branch}"
+echo "📦 Komponenten: $(( 2 + ${config.components.heroes.length} + ${config.components.blocks.length} ))"
+echo "🔄 Migrationen: $(ls src/migrations/*.ts | wc -l)"
+echo ""
+echo "📝 Dokumentation:"
+echo "   - WEBSITE_GENERATION.md"
+echo "   - README.md (updated)"
+echo "   - .temp/generation-report.json"
+echo ""
+echo "───────────────────────────────────────────────────────────────"
+echo ""
+echo "🚀 Nächster Schritt: Branch Mergen"
+echo ""
+echo "Option 1 - Pull Request (empfohlen):"
+echo "  1. Gehe zu GitHub Repository"
+echo "  2. Erstelle Pull Request von ${config.branch}"
+echo "  3. Review & Merge"
+echo ""
+echo "Option 2 - Direct Merge:"
+echo "  git checkout main"
+echo "  git merge ${config.branch}"
+echo "  git push origin main"
+echo "  git branch -d ${config.branch}"
+echo "  git push origin --delete ${config.branch}"
+echo ""
+echo "───────────────────────────────────────────────────────────────"
+echo ""
+echo "✨ Die Website ist bereit für die Inhaltserstellung!"
+echo ""
+echo "Admin Panel: http://localhost:3000/admin"
+echo ""
+echo "═══════════════════════════════════════════════════════════════"
+```
+
+## Erfolgskriterien
+
+- [ ] Alle Komponenten vorhanden und validiert
+- [ ] TypeScript Build ohne Fehler
+- [ ] Alle Migrationen erfolgreich
+- [ ] Payload Admin funktioniert einwandfrei
+- [ ] Vollständige Dokumentation erstellt
+- [ ] README.md aktualisiert
+- [ ] Package.json Scripts hinzugefügt
+- [ ] Success Report generiert
+- [ ] Git History sauber
+- [ ] Branch bereit zum Mergen
+- [ ] ShadCN Button Variants überall verwendet
+- [ ] Relume Designs exakt erhalten
+- [ ] Deutsche Labels durchgängig
+
+## Abschluss
+
+Nach erfolgreicher Finalisierung:
+1. ✅ Feature Branch in main mergen
+2. 📝 Team über neue Website informieren
+3. 📚 Dokumentation teilen (WEBSITE_GENERATION.md)
+4. 🎨 Content-Erstellung im Admin Panel planen
+5. 🚀 Production Deployment vorbereiten
+
+**Die Website ist nun vollständig generiert und bereit für die Inhaltserstellung im PayloadCMS Admin Panel!** 🎉

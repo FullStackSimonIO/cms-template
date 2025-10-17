@@ -1,0 +1,466 @@
+---
+description: Navbar Komponente aus Relume GitHub laden und konvertieren
+---
+
+# Schritt 1: Navbar erstellen
+
+## Input
+- Props: `navbar` (z.B. "Navbar1")
+- Build Config: `.temp/build-config.json`
+
+## Aufgaben
+
+### 1. Relume Komponente von GitHub laden
+
+```typescript
+// Lade Build Config
+const config = JSON.parse(fs.readFileSync('.temp/build-config.json'));
+const navbarConfig = config.components.navbar;
+
+console.log(`📥 Lade ${navbarConfig.name} von GitHub...`);
+console.log(`   Path: ${navbarConfig.path}`);
+
+// GitHub MCP Call
+const navbarCode = await mcp.tools.github.read_file({
+  owner: config.relume.owner,
+  repo: config.relume.repo,
+  path: navbarConfig.path,
+  branch: config.relume.branch
+});
+
+// Speichern für Analyse
+fs.writeFileSync(
+  `.temp/relume-components/navbar/${navbarConfig.name}.tsx`,
+  navbarCode
+);
+
+console.log('✅ Navbar Code geladen und gespeichert');
+```
+
+### 2. Code analysieren
+
+```typescript
+// Analysiere den Relume Code
+const analysis = {
+  hasLogo: navbarCode.includes('logo') || navbarCode.includes('Logo'),
+  hasNavLinks: navbarCode.includes('nav') || navbarCode.includes('menu'),
+  hasCTA: navbarCode.includes('button') || navbarCode.includes('Button'),
+  hasMobileMenu: navbarCode.includes('mobile') || navbarCode.includes('Mobile'),
+  buttonCount: (navbarCode.match(/button/gi) || []).length,
+  tailwindClasses: extractTailwindClasses(navbarCode),
+};
+
+fs.writeFileSync(
+  '.temp/analysis/navbar-analysis.json',
+  JSON.stringify(analysis, null, 2)
+);
+
+console.log('✅ Code Analyse abgeschlossen');
+```
+
+### 3. MobileNav.tsx erstellen
+
+```typescript
+// filepath: src/Header/MobileNav.tsx
+'use client'
+
+import React, { useState } from 'react'
+import type { Header } from '@/payload-types'
+import { Button } from '@/components/ui/button'
+import { Media } from '@/components/Media'
+import { CMSLink } from '@/components/CMSLink'
+
+interface MobileNavProps {
+  header: Header
+}
+
+export const MobileNav: React.FC<MobileNavProps> = ({ header }) => {
+  const [isOpen, setIsOpen] = useState(false)
+  
+  // WICHTIG: Original Relume Code hier einfügen
+  // NUR Datenquelle ändern - KEINE Styles ändern!
+  // Tailwind Classes EXAKT beibehalten
+  
+  return (
+    <div className="lg:hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-[5%] py-4">
+        {/* Logo */}
+        {header.logo && (
+          <Media 
+            resource={header.logo} 
+            className="h-8 w-auto"
+          />
+        )}
+        
+        {/* Mobile Menu Toggle */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsOpen(!isOpen)}
+          aria-label="Menu"
+        >
+          {/* Icon */}
+        </Button>
+      </div>
+      
+      {/* Mobile Menu */}
+      {isOpen && (
+        <div className="px-[5%] py-4">
+          <nav className="flex flex-col space-y-4">
+            {header.navigation?.map((item, index) => (
+              <CMSLink
+                key={index}
+                {...item.link}
+                className="text-md"
+              >
+                {item.label}
+              </CMSLink>
+            ))}
+          </nav>
+          
+          {/* CTA Button - NUR ShadCN Variant! */}
+          {header.ctaButton && (
+            <div className="mt-6">
+              <Button
+                variant={header.ctaButton.variant || 'default'}
+                className="w-full"
+                asChild
+              >
+                <CMSLink {...header.ctaButton.link}>
+                  {header.ctaButton.text}
+                </CMSLink>
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### 4. DesktopNav.tsx erstellen
+
+```typescript
+// filepath: src/Header/DesktopNav.tsx
+'use client'
+
+import React from 'react'
+import type { Header } from '@/payload-types'
+import { Button } from '@/components/ui/button'
+import { Media } from '@/components/Media'
+import { CMSLink } from '@/components/CMSLink'
+
+interface DesktopNavProps {
+  header: Header
+}
+
+export const DesktopNav: React.FC<DesktopNavProps> = ({ header }) => {
+  return (
+    <div className="hidden lg:block">
+      <div className="flex items-center justify-between px-[5%] py-4">
+        {/* Logo */}
+        {header.logo && (
+          <Media 
+            resource={header.logo} 
+            className="h-8 w-auto"
+          />
+        )}
+        
+        {/* Navigation */}
+        <nav className="flex items-center gap-6">
+          {header.navigation?.map((item, index) => (
+            <CMSLink
+              key={index}
+              {...item.link}
+              className="text-sm font-medium transition-colors hover:text-primary"
+            >
+              {item.label}
+            </CMSLink>
+          ))}
+        </nav>
+        
+        {/* CTA Button - NUR ShadCN Variant! */}
+        {header.ctaButton && (
+          <Button
+            variant={header.ctaButton.variant || 'default'}
+            asChild
+          >
+            <CMSLink {...header.ctaButton.link}>
+              {header.ctaButton.text}
+            </CMSLink>
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+}
+```
+
+### 5. PayloadCMS Config mit ShadCN Variants
+
+```typescript
+// filepath: src/Header/config.ts
+import type { GlobalConfig } from 'payload'
+import { revalidateHeader } from './hooks/revalidateHeader'
+
+export const Header: GlobalConfig = {
+  slug: 'header',
+  label: 'Kopfzeile',
+  fields: [
+    {
+      name: 'logo',
+      type: 'upload',
+      relationTo: 'media',
+      label: 'Logo',
+      required: true,
+      admin: {
+        description: 'Das Haupt-Logo der Website',
+      },
+    },
+    {
+      name: 'navigation',
+      type: 'array',
+      label: 'Hauptnavigation',
+      minRows: 1,
+      maxRows: 8,
+      fields: [
+        {
+          name: 'label',
+          type: 'text',
+          label: 'Beschriftung',
+          required: true,
+        },
+        {
+          name: 'link',
+          type: 'group',
+          label: 'Link',
+          fields: [
+            {
+              name: 'type',
+              type: 'select',
+              label: 'Link-Typ',
+              options: [
+                { label: 'Interne Seite', value: 'page' },
+                { label: 'Externe URL', value: 'url' },
+              ],
+              defaultValue: 'page',
+            },
+            {
+              name: 'page',
+              type: 'relationship',
+              relationTo: 'pages',
+              label: 'Seite',
+              admin: {
+                condition: (data, siblingData) => siblingData?.type === 'page',
+              },
+            },
+            {
+              name: 'url',
+              type: 'text',
+              label: 'URL',
+              admin: {
+                condition: (data, siblingData) => siblingData?.type === 'url',
+              },
+            },
+          ],
+        },
+        {
+          name: 'submenu',
+          type: 'array',
+          label: 'Untermenü',
+          admin: {
+            description: 'Optional: Dropdown-Menü für diesen Navigationspunkt',
+          },
+          fields: [
+            {
+              name: 'label',
+              type: 'text',
+              label: 'Beschriftung',
+            },
+            {
+              name: 'link',
+              type: 'text',
+              label: 'Link',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'ctaButton',
+      type: 'group',
+      label: 'CTA Button',
+      fields: [
+        {
+          name: 'text',
+          type: 'text',
+          label: 'Button Text',
+          defaultValue: 'Kontakt',
+        },
+        {
+          name: 'link',
+          type: 'group',
+          label: 'Link',
+          fields: [
+            {
+              name: 'type',
+              type: 'select',
+              options: [
+                { label: 'Interne Seite', value: 'page' },
+                { label: 'Externe URL', value: 'url' },
+              ],
+            },
+            {
+              name: 'page',
+              type: 'relationship',
+              relationTo: 'pages',
+              admin: {
+                condition: (_, siblingData) => siblingData?.type === 'page',
+              },
+            },
+            {
+              name: 'url',
+              type: 'text',
+              admin: {
+                condition: (_, siblingData) => siblingData?.type === 'url',
+              },
+            },
+          ],
+        },
+        {
+          name: 'variant',
+          type: 'select',
+          label: 'Button Stil',
+          admin: {
+            description: 'Wähle den Stil des Buttons (ShadCN Variant)',
+          },
+          options: [
+            { label: 'Standard (gefüllt)', value: 'default' },
+            { label: 'Outline', value: 'outline' },
+            { label: 'Ghost (transparent)', value: 'ghost' },
+            { label: 'Link', value: 'link' },
+          ],
+          defaultValue: 'default',
+        },
+      ],
+    },
+  ],
+  hooks: {
+    afterChange: [revalidateHeader],
+  },
+}
+```
+
+### 6. Hook erstellen (falls nicht vorhanden)
+
+```typescript
+// filepath: src/Header/hooks/revalidateHeader.ts
+import type { GlobalAfterChangeHook } from 'payload'
+import { revalidateTag } from 'next/cache'
+
+export const revalidateHeader: GlobalAfterChangeHook = ({ 
+  doc, 
+  req: { payload, context } 
+}) => {
+  if (!context.disableRevalidate) {
+    payload.logger.info(`Revalidating header`)
+    revalidateTag('global_header')
+  }
+  return doc
+}
+```
+
+### 7. Index Export
+
+```typescript
+// filepath: src/Header/index.tsx
+'use client'
+
+import { MobileNav } from './MobileNav'
+import { DesktopNav } from './DesktopNav'
+import type { Header as HeaderType } from '@/payload-types'
+
+interface HeaderProps {
+  header: HeaderType
+}
+
+export const Header: React.FC<HeaderProps> = ({ header }) => {
+  return (
+    <header>
+      <MobileNav header={header} />
+      <DesktopNav header={header} />
+    </header>
+  )
+}
+```
+
+### 8. Migration erstellen
+
+```bash
+npm run payload migrate:create -- --name add-header-global
+
+echo "Migration erstellt, führe aus..."
+npm run payload migrate
+
+echo "✅ Migration erfolgreich ausgeführt"
+```
+
+### 9. In payload.config.ts registrieren
+
+```typescript
+// filepath: src/payload.config.ts
+// ...existing code...
+import { Header } from './Header/config'
+
+export default buildConfig({
+  // ...existing code...
+  globals: [
+    Header,
+    // ...existing code...
+  ],
+})
+```
+
+### 10. Git Commit
+
+```bash
+git add src/Header/
+git add src/payload.config.ts
+git add src/migrations/
+
+git commit -m "feat(header): add ${navbarConfig.name} navbar
+
+Source: relume/Header/${navbarConfig.name}.tsx
+Components:
+- MobileNav.tsx
+- DesktopNav.tsx
+- config.ts with German UX
+- revalidateHeader hook
+
+✅ Original Relume design preserved
+✅ All Tailwind classes maintained
+✅ ShadCN Button variants used
+✅ Migration executed
+✅ Registered in payload.config.ts"
+
+echo "✅ Git Commit erstellt"
+```
+
+## Erfolgskriterien
+
+- [ ] Navbar Code erfolgreich von GitHub geladen
+- [ ] Code Analyse durchgeführt
+- [ ] MobileNav.tsx mit originalem Relume Design
+- [ ] DesktopNav.tsx mit originalem Relume Design
+- [ ] config.ts mit deutschen Labels und ShadCN variants
+- [ ] Nur ShadCN Button Variants verwendet (keine Custom-Styles!)
+- [ ] revalidateHeader Hook vorhanden
+- [ ] Migration erfolgreich ausgeführt
+- [ ] In payload.config.ts registriert
+- [ ] Git Commit erstellt
+- [ ] Alle Tailwind Classes exakt beibehalten
+
+## Nächster Schritt
+`.cursor/commands/02-create-footer.mdc`

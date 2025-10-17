@@ -1,0 +1,246 @@
+---
+description: Projekt-Initialisierung, GitHub MCP Test und Validierung
+---
+
+# Schritt 0: Projekt initialisieren
+
+## Aufgaben
+
+### 1. GitHub MCP Connection testen
+
+**Test GitHub Access:**
+```typescript
+// Teste ob GitHub MCP Server funktioniert
+try {
+  const testFile = await mcp.tools.github.read_file({
+    owner: "your-username",
+    repo: "your-relume-repo",
+    path: "relume/Header/Navbar1.tsx",
+    branch: "main"
+  });
+  
+  console.log("✅ GitHub MCP Connection erfolgreich");
+} catch (error) {
+  console.error("❌ GitHub MCP Connection fehlgeschlagen");
+  console.error("Bitte überprüfe:");
+  console.error("- GITHUB_TOKEN gesetzt?");
+  console.error("- Token hat repo access?");
+  console.error("- Repo Name korrekt?");
+  throw error;
+}
+```
+
+### 2. Projekt validieren
+
+Überprüfe:
+- [ ] `payload.config.ts` existiert
+- [ ] `package.json` alle Dependencies hat
+- [ ] `tsconfig.json` korrekt konfiguriert
+- [ ] `components/ui/button.tsx` (ShadCN) vorhanden
+- [ ] `.env` mit notwendigen Variablen
+
+**Required Dependencies Check:**
+```json
+{
+  "payload": "^3.0.0",
+  "@payloadcms/richtext-lexical": "^3.0.0",
+  "next": "^14.0.0",
+  "react": "^18.0.0"
+}
+```
+
+### 3. Git Branch erstellen
+
+```bash
+# Feature Branch mit Timestamp
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+BRANCH_NAME="feature/website-generation-${TIMESTAMP}"
+
+git checkout -b ${BRANCH_NAME}
+echo "✅ Branch erstellt: ${BRANCH_NAME}"
+```
+
+### 4. Arbeitsverzeichnis vorbereiten
+
+```bash
+# Temp Ordner für Relume Components
+mkdir -p .temp/relume-components/navbar
+mkdir -p .temp/relume-components/footer
+mkdir -p .temp/relume-components/heroes
+mkdir -p .temp/relume-components/blocks
+
+# Migration Logs
+mkdir -p .temp/migration-logs
+
+# Analysis
+mkdir -p .temp/analysis
+
+echo "✅ Arbeitsverzeichnisse erstellt"
+```
+
+### 5. Props validieren
+
+```typescript
+// Validiere Input Props
+interface BuildProps {
+  navbar: string;
+  footer: string;
+  heroes: string[];
+  blocks: string[];
+}
+
+function validateProps(props: BuildProps): void {
+  // Navbar
+  if (!props.navbar || typeof props.navbar !== 'string') {
+    throw new Error('navbar prop erforderlich und muss string sein');
+  }
+  
+  // Footer
+  if (!props.footer || typeof props.footer !== 'string') {
+    throw new Error('footer prop erforderlich und muss string sein');
+  }
+  
+  // Heroes
+  if (!Array.isArray(props.heroes) || props.heroes.length === 0) {
+    throw new Error('heroes prop muss Array mit mindestens 1 Hero sein');
+  }
+  
+  // Blocks
+  if (!Array.isArray(props.blocks) || props.blocks.length === 0) {
+    throw new Error('blocks prop muss Array mit mindestens 1 Block sein');
+  }
+  
+  console.log('✅ Props validiert');
+}
+
+validateProps(props);
+```
+
+### 6. Props normalisieren und loggen
+
+```typescript
+// Normalisiere Hero Namen
+const normalizedHeroes = props.heroes.map(hero => {
+  if (hero.startsWith('HeroHeader')) {
+    return hero;
+  }
+  return hero.replace(/^Header/, 'HeroHeader');
+});
+
+// Erstelle Build Config
+const buildConfig = {
+  timestamp: new Date().toISOString(),
+  branch: BRANCH_NAME,
+  relume: {
+    owner: "your-username",
+    repo: "your-relume-repo",
+    branch: "main",
+  },
+  components: {
+    navbar: {
+      name: props.navbar,
+      path: `relume/Header/${props.navbar}.tsx`
+    },
+    footer: {
+      name: props.footer,
+      path: `relume/Footer/${props.footer}.tsx`
+    },
+    heroes: normalizedHeroes.map(hero => ({
+      name: hero,
+      originalName: props.heroes[normalizedHeroes.indexOf(hero)],
+      path: `relume/Header/${hero}.tsx`
+    })),
+    blocks: props.blocks.map(block => {
+      const category = determineCategory(block);
+      return {
+        name: block,
+        category,
+        path: `relume/${category}/${block}.tsx`
+      };
+    })
+  }
+};
+
+// Speichern
+fs.writeFileSync(
+  '.temp/build-config.json',
+  JSON.stringify(buildConfig, null, 2)
+);
+
+console.log('✅ Build Config gespeichert in .temp/build-config.json');
+```
+
+### 7. Category Detection Funktion
+
+```typescript
+function determineCategory(blockName: string): string {
+  // Extract prefix from block name
+  const match = blockName.match(/^([A-Z][a-z]*[A-Z]*)/);
+  const prefix = match ? match[1] : blockName;
+  
+  // Mapping zu Relume Ordnernamen
+  const categoryMap: Record<string, string> = {
+    'Banner': 'Banners',
+    'Blog': 'Blog',
+    'BlogPost': 'BlogPostHeader',
+    'Career': 'Career',
+    'Comparison': 'Comparison',
+    'Contact': 'Contact',
+    'ContactModal': 'ContactModal',
+    'CTA': 'CTA',
+    'Event': 'Events',
+    'EventHeader': 'EventHeaders',
+    'EventHeaderItem': 'EventHeaderItems',
+    'FAQ': 'FAQ',
+    'Gallery': 'Gallery',
+    'Header': 'Header',
+    'Footer': 'Footer',
+  };
+  
+  return categoryMap[prefix] || prefix;
+}
+```
+
+### 8. Initialer Git Commit
+
+```bash
+git add .temp/
+git commit -m "chore: initialize website generation
+
+Build Config:
+- Navbar: ${props.navbar}
+- Footer: ${props.footer}
+- Heroes: ${normalizedHeroes.join(', ')}
+- Blocks: ${props.blocks.join(', ')}
+
+Branch: ${BRANCH_NAME}
+Timestamp: $(date -Iseconds)"
+```
+
+## Erfolgskriterien
+
+- [ ] GitHub MCP Connection erfolgreich getestet
+- [ ] Git Branch erstellt
+- [ ] Alle Verzeichnisse existieren
+- [ ] Props validiert und normalisiert
+- [ ] Build Config gespeichert
+- [ ] Category Detection funktioniert
+- [ ] Initialer Commit erstellt
+- [ ] Bereit für nächsten Schritt
+
+## Output
+
+Nach erfolgreicher Initialisierung wird folgendes ausgegeben:
+
+```
+✅ GitHub MCP Connection erfolgreich
+✅ Branch erstellt: feature/website-generation-20231017-143022
+✅ Arbeitsverzeichnisse erstellt
+✅ Props validiert
+✅ Build Config gespeichert in .temp/build-config.json
+
+Nächster Schritt: 01-create-navbar.mdc
+```
+
+## Nächster Schritt
+`.cursor/commands/01-create-navbar.mdc`

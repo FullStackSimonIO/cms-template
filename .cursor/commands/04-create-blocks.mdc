@@ -1,0 +1,770 @@
+---
+description: Alle Block Komponenten aus Relume GitHub laden und konvertieren
+---
+
+# Schritt 4: Blocks erstellen
+
+## Input
+- Props: `blocks` (z.B. ["Layout1", "CTA2", "FAQ5", "Contact1"])
+- Build Config: `.temp/build-config.json`
+
+## Relume Repository Struktur
+
+Blocks sind in Kategorien organisiert:
+- `relume/Banners/` - Banner Komponenten
+- `relume/Blog/` - Blog Komponenten
+- `relume/CTA/` - Call-to-Action Komponenten
+- `relume/FAQ/` - FAQ Komponenten
+- `relume/Contact/` - Kontakt Komponenten
+- `relume/Gallery/` - Galerie Komponenten
+- `relume/Events/` - Event Komponenten
+- etc.
+
+## Aufgaben
+
+### 1. Alle Block Komponenten von GitHub laden
+
+```typescript
+// Lade Build Config
+const config = JSON.parse(fs.readFileSync('.temp/build-config.json'));
+const blocksConfig = config.components.blocks;
+
+console.log(`📥 Lade ${blocksConfig.length} Blocks von GitHub...`);
+
+const blockAnalysis = [];
+
+for (const block of blocksConfig) {
+  console.log(`   Loading: ${block.name} (${block.category}/${block.name})`);
+  
+  // GitHub MCP Call
+  const blockCode = await mcp.tools.github.read_file({
+    owner: config.relume.owner,
+    repo: config.relume.repo,
+    path: block.path,
+    branch: config.relume.branch
+  });
+  
+  // Speichern für Analyse
+  const categoryDir = `.temp/relume-components/blocks/${block.category}`;
+  fs.mkdirSync(categoryDir, { recursive: true });
+  fs.writeFileSync(
+    `${categoryDir}/${block.name}.tsx`,
+    blockCode
+  );
+  
+  // Analysiere Komponente
+  const analysis = {
+    name: block.name,
+    category: block.category,
+    hasHeading: blockCode.includes('heading') || blockCode.includes('Heading'),
+    hasDescription: blockCode.includes('description') || blockCode.includes('Description'),
+    hasImage: blockCode.includes('img') || blockCode.includes('Image'),
+    hasRichText: blockCode.includes('richText') || blockCode.includes('content'),
+    hasButtons: blockCode.includes('button') || blockCode.includes('Button'),
+    hasForm: blockCode.includes('form') || blockCode.includes('Form') || blockCode.includes('input'),
+    hasGrid: blockCode.includes('grid') || blockCode.includes('Grid'),
+    hasCards: blockCode.includes('card') || blockCode.includes('Card'),
+    hasTestimonials: blockCode.includes('testimonial') || blockCode.includes('quote'),
+    hasFAQ: blockCode.includes('faq') || blockCode.includes('accordion'),
+    buttonCount: (blockCode.match(/button|Button/gi) || []).length,
+  };
+  
+  blockAnalysis.push(analysis);
+  console.log(`   ✅ ${block.name} geladen und analysiert`);
+}
+
+// Speichere Gesamt-Analyse
+fs.writeFileSync(
+  '.temp/analysis/blocks-analysis.json',
+  JSON.stringify(blockAnalysis, null, 2)
+);
+
+console.log('✅ Alle Blocks geladen und analysiert');
+```
+
+### 2. Block Configs erstellen
+
+Für jeden Block in `blocksConfig`:
+
+```typescript
+// filepath: src/blocks/{Category}/{BlockName}/config.ts
+import type { Block } from 'payload'
+
+export const {BlockName}Block: Block = {
+  slug: '{blockSlug}', // z.B. 'cta2', 'faq5', 'contact1'
+  labels: {
+    singular: '{Block Label Singular}', // z.B. 'Call-to-Action'
+    plural: '{Block Label Plural}', // z.B. 'Call-to-Actions'
+  },
+  fields: [
+    // Basis Felder (fast jeder Block hat diese)
+    {
+      name: 'heading',
+      type: 'text',
+      label: 'Überschrift',
+      admin: {
+        description: 'Hauptüberschrift des Blocks',
+      },
+    },
+    {
+      name: 'description',
+      type: 'richText',
+      label: 'Beschreibung',
+      admin: {
+        description: 'Beschreibungstext unter der Überschrift',
+      },
+    },
+    
+    // Conditional: Nur wenn Block Bilder hat
+    ...(analysis.hasImage ? [{
+      name: 'image',
+      type: 'upload',
+      relationTo: 'media',
+      label: 'Bild',
+    }] : []),
+    
+    // Conditional: Nur wenn Block Buttons hat
+    ...(analysis.hasButtons ? [{
+      name: 'buttons',
+      type: 'array',
+      label: 'Buttons',
+      maxRows: analysis.buttonCount || 2,
+      fields: [
+        {
+          name: 'text',
+          type: 'text',
+          label: 'Button Text',
+          required: true,
+        },
+        {
+          name: 'link',
+          type: 'group',
+          label: 'Link',
+          fields: [
+            {
+              name: 'type',
+              type: 'select',
+              options: [
+                { label: 'Interne Seite', value: 'page' },
+                { label: 'Externe URL', value: 'url' },
+              ],
+              defaultValue: 'page',
+            },
+            {
+              name: 'page',
+              type: 'relationship',
+              relationTo: 'pages',
+              admin: {
+                condition: (_, siblingData) => siblingData?.type === 'page',
+              },
+            },
+            {
+              name: 'url',
+              type: 'text',
+              admin: {
+                condition: (_, siblingData) => siblingData?.type === 'url',
+              },
+            },
+          ],
+        },
+        {
+          name: 'variant',
+          type: 'select',
+          label: 'Button Stil',
+          options: [
+            { label: 'Standard', value: 'default' },
+            { label: 'Outline', value: 'outline' },
+            { label: 'Ghost', value: 'ghost' },
+            { label: 'Link', value: 'link' },
+          ],
+          defaultValue: 'default',
+        },
+      ],
+    }] : []),
+    
+    // Spezielle Felder basierend auf Block-Typ
+    // Siehe spezielle Config Templates unten
+  ],
+}
+```
+
+### 3. Spezielle Block Config Templates
+
+**FAQ Block:**
+```typescript
+// filepath: src/blocks/FAQ/{FAQBlockName}/config.ts
+import type { Block } from 'payload'
+
+export const {FAQBlockName}Block: Block = {
+  slug: '{faqSlug}',
+  labels: {
+    singular: 'FAQ Sektion',
+    plural: 'FAQ Sektionen',
+  },
+  fields: [
+    {
+      name: 'heading',
+      type: 'text',
+      label: 'Überschrift',
+    },
+    {
+      name: 'description',
+      type: 'textarea',
+      label: 'Beschreibung',
+    },
+    {
+      name: 'faqs',
+      type: 'array',
+      label: 'Häufig gestellte Fragen',
+      minRows: 1,
+      admin: {
+        initCollapsed: true,
+      },
+      fields: [
+        {
+          name: 'question',
+          type: 'text',
+          label: 'Frage',
+          required: true,
+        },
+        {
+          name: 'answer',
+          type: 'richText',
+          label: 'Antwort',
+          required: true,
+        },
+      ],
+    },
+  ],
+}
+```
+
+**CTA Block:**
+```typescript
+// filepath: src/blocks/CTA/{CTABlockName}/config.ts
+import type { Block } from 'payload'
+
+export const {CTABlockName}Block: Block = {
+  slug: '{ctaSlug}',
+  labels: {
+    singular: 'Call-to-Action',
+    plural: 'Call-to-Actions',
+  },
+  fields: [
+    {
+      name: 'heading',
+      type: 'text',
+      label: 'Überschrift',
+      required: true,
+    },
+    {
+      name: 'subheading',
+      type: 'textarea',
+      label: 'Unterüberschrift',
+    },
+    {
+      name: 'buttons',
+      type: 'array',
+      label: 'Buttons',
+      maxRows: 2,
+      fields: [
+        {
+          name: 'text',
+          type: 'text',
+          label: 'Button Text',
+          required: true,
+        },
+        {
+          name: 'link',
+          type: 'group',
+          fields: [
+            {
+              name: 'type',
+              type: 'select',
+              options: [
+                { label: 'Interne Seite', value: 'page' },
+                { label: 'Externe URL', value: 'url' },
+              ],
+            },
+            {
+              name: 'page',
+              type: 'relationship',
+              relationTo: 'pages',
+              admin: {
+                condition: (_, siblingData) => siblingData?.type === 'page',
+              },
+            },
+            {
+              name: 'url',
+              type: 'text',
+              admin: {
+                condition: (_, siblingData) => siblingData?.type === 'url',
+              },
+            },
+          ],
+        },
+        {
+          name: 'variant',
+          type: 'select',
+          label: 'Button Stil',
+          options: [
+            { label: 'Standard', value: 'default' },
+            { label: 'Outline', value: 'outline' },
+            { label: 'Ghost', value: 'ghost' },
+          ],
+          defaultValue: 'default',
+        },
+      ],
+    },
+    {
+      name: 'backgroundImage',
+      type: 'upload',
+      relationTo: 'media',
+      label: 'Hintergrundbild',
+      admin: {
+        description: 'Optional: Hintergrundbild für den CTA Block',
+      },
+    },
+  ],
+}
+```
+
+**Contact Block:**
+```typescript
+// filepath: src/blocks/Contact/{ContactBlockName}/config.ts
+import type { Block } from 'payload'
+
+export const {ContactBlockName}Block: Block = {
+  slug: '{contactSlug}',
+  labels: {
+    singular: 'Kontakt Sektion',
+    plural: 'Kontakt Sektionen',
+  },
+  fields: [
+    {
+      name: 'heading',
+      type: 'text',
+      label: 'Überschrift',
+    },
+    {
+      name: 'description',
+      type: 'richText',
+      label: 'Beschreibung',
+    },
+    {
+      name: 'contactInfo',
+      type: 'group',
+      label: 'Kontaktinformationen',
+      fields: [
+        {
+          name: 'email',
+          type: 'email',
+          label: 'E-Mail',
+        },
+        {
+          name: 'phone',
+          type: 'text',
+          label: 'Telefon',
+        },
+        {
+          name: 'address',
+          type: 'textarea',
+          label: 'Adresse',
+        },
+      ],
+    },
+    {
+      name: 'showForm',
+      type: 'checkbox',
+      label: 'Formular anzeigen',
+      defaultValue: true,
+    },
+    {
+      name: 'formFields',
+      type: 'array',
+      label: 'Formular Felder',
+      admin: {
+        condition: (data) => data.showForm,
+      },
+      fields: [
+        {
+          name: 'label',
+          type: 'text',
+          label: 'Beschriftung',
+        },
+        {
+          name: 'type',
+          type: 'select',
+          label: 'Feld-Typ',
+          options: [
+            { label: 'Text', value: 'text' },
+            { label: 'E-Mail', value: 'email' },
+            { label: 'Telefon', value: 'tel' },
+            { label: 'Textarea', value: 'textarea' },
+          ],
+        },
+        {
+          name: 'required',
+          type: 'checkbox',
+          label: 'Pflichtfeld',
+        },
+      ],
+    },
+  ],
+}
+```
+
+**Gallery Block:**
+```typescript
+// filepath: src/blocks/Gallery/{GalleryBlockName}/config.ts
+import type { Block } from 'payload'
+
+export const {GalleryBlockName}Block: Block = {
+  slug: '{gallerySlug}',
+  labels: {
+    singular: 'Galerie',
+    plural: 'Galerien',
+  },
+  fields: [
+    {
+      name: 'heading',
+      type: 'text',
+      label: 'Überschrift',
+    },
+    {
+      name: 'images',
+      type: 'array',
+      label: 'Bilder',
+      minRows: 1,
+      fields: [
+        {
+          name: 'image',
+          type: 'upload',
+          relationTo: 'media',
+          label: 'Bild',
+          required: true,
+        },
+        {
+          name: 'caption',
+          type: 'text',
+          label: 'Bildunterschrift',
+        },
+      ],
+    },
+    {
+      name: 'layout',
+      type: 'select',
+      label: 'Layout',
+      options: [
+        { label: 'Grid 2 Spalten', value: 'grid-2' },
+        { label: 'Grid 3 Spalten', value: 'grid-3' },
+        { label: 'Grid 4 Spalten', value: 'grid-4' },
+        { label: 'Masonry', value: 'masonry' },
+      ],
+      defaultValue: 'grid-3',
+    },
+  ],
+}
+```
+
+### 4. Block Components erstellen
+
+Für jeden Block in `blocksConfig`:
+
+```typescript
+// filepath: src/blocks/{Category}/{BlockName}/Component.tsx
+'use client'
+
+import React from 'react'
+import type { {BlockName}Block } from '@/payload-types'
+import { Button } from '@/components/ui/button'
+import { RichText } from '@/components/RichText'
+import { Media } from '@/components/Media'
+import { CMSLink } from '@/components/CMSLink'
+
+interface {BlockName}Props {
+  data: {BlockName}Block
+}
+
+export const {BlockName}: React.FC<{BlockName}Props> = ({ data }) => {
+  // WICHTIG: Original Relume Code hier einfügen
+  // NUR Datenquelle ändern - KEINE Styles ändern!
+  // Tailwind Classes EXAKT beibehalten
+  // Buttons NUR mit ShadCN Variants
+  
+  return (
+    <section className="px-[5%] py-16 md:py-24 lg:py-28">
+      <div className="container">
+        {/* Heading */}
+        {data.heading && (
+          <div className="mb-12 text-center md:mb-18 lg:mb-20">
+            <h2 className="mb-5 text-5xl font-bold md:mb-6 md:text-7xl lg:text-8xl">
+              {data.heading}
+            </h2>
+            {data.description && (
+              <div className="md:text-md">
+                <RichText content={data.description} />
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Block-spezifischer Content hier */}
+        {/* Original Relume JSX mit PayloadCMS data binding */}
+        
+        {/* Buttons - NUR ShadCN Variants! */}
+        {data.buttons && data.buttons.length > 0 && (
+          <div className="mt-10 flex flex-wrap justify-center gap-4">
+            {data.buttons.map((button, index) => (
+              <Button
+                key={index}
+                variant={button.variant}
+                asChild
+              >
+                <CMSLink {...button.link}>
+                  {button.text}
+                </CMSLink>
+              </Button>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+```
+
+**FAQ Component Beispiel:**
+```typescript
+// filepath: src/blocks/FAQ/{FAQBlockName}/Component.tsx
+'use client'
+
+import React, { useState } from 'react'
+import type { {FAQBlockName}Block } from '@/payload-types'
+import { RichText } from '@/components/RichText'
+import { ChevronDown } from 'lucide-react'
+
+interface {FAQBlockName}Props {
+  data: {FAQBlockName}Block
+}
+
+export const {FAQBlockName}: React.FC<{FAQBlockName}Props> = ({ data }) => {
+  const [openIndex, setOpenIndex] = useState<number | null>(null)
+  
+  return (
+    <section className="px-[5%] py-16 md:py-24 lg:py-28">
+      <div className="container max-w-4xl">
+        {/* Heading */}
+        {data.heading && (
+          <div className="mb-12 text-center">
+            <h2 className="mb-4 text-4xl font-bold md:text-5xl">
+              {data.heading}
+            </h2>
+            {data.description && (
+              <p className="text-muted-foreground">
+                {data.description}
+              </p>
+            )}
+          </div>
+        )}
+        
+        {/* FAQs */}
+        <div className="space-y-4">
+          {data.faqs?.map((faq, index) => (
+            <div
+              key={index}
+              className="border rounded-lg overflow-hidden"
+            >
+              <button
+                onClick={() => setOpenIndex(openIndex === index ? null : index)}
+                className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-muted transition-colors"
+              >
+                <span className="font-semibold">{faq.question}</span>
+                <ChevronDown 
+                  className={`transition-transform ${
+                    openIndex === index ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+              {openIndex === index && (
+                <div className="px-6 py-4 border-t bg-muted/50">
+                  <RichText content={faq.answer} />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+```
+
+### 5. Index Files erstellen
+
+Für jeden Block:
+
+```typescript
+// filepath: src/blocks/{Category}/{BlockName}/index.ts
+export { {BlockName} } from './Component'
+export { {BlockName}Block } from './config'
+```
+
+### 6. Block Renderer erstellen
+
+```typescript
+// filepath: src/blocks/index.tsx
+// Import all blocks by category
+${blocksConfig.map(block => 
+  `import { ${block.name} } from './${block.category}/${block.name}'`
+).join('\n')}
+
+// Export all block configs
+${blocksConfig.map(block => 
+  `export { ${block.name}Block } from './${block.category}/${block.name}'`
+).join('\n')}
+
+// Block Components Map
+export const BlockComponents = {
+  ${blocksConfig.map(block => {
+    const slug = block.name.charAt(0).toLowerCase() + block.name.slice(1);
+    return `${slug}: ${block.name}`;
+  }).join(',\n  ')}
+}
+
+interface BlockRendererProps {
+  blocks: any[]
+}
+
+export const BlockRenderer: React.FC<BlockRendererProps> = ({ blocks }) => {
+  if (!blocks || blocks.length === 0) {
+    return null
+  }
+  
+  return (
+    <>
+      {blocks.map((block, index) => {
+        const Component = BlockComponents[block.blockType]
+        
+        if (!Component) {
+          console.warn(`Block type "${block.blockType}" not found`)
+          return null
+        }
+        
+        return <Component key={index} data={block} />
+      })}
+    </>
+  )
+}
+```
+
+### 7. Migration für jeden Block erstellen
+
+```bash
+# Für jeden Block eine Migration
+echo "Erstelle Migrationen für alle Blocks..."
+
+for block in ${blocksConfig.map(b => b.name).join(' ')}; do
+  echo "  Creating migration for ${block}..."
+  npm run payload migrate:create -- --name "add-${block}-block"
+done
+
+echo "Führe alle Migrationen aus..."
+npm run payload migrate
+
+echo "✅ Alle Migrationen erfolgreich ausgeführt"
+```
+
+### 8. Alle Blocks in payload.config.ts registrieren
+
+```typescript
+// filepath: src/payload.config.ts
+// ...existing code...
+import { HeroBlock } from './heroes/config'
+${blocksConfig.map(block => 
+  `import { ${block.name}Block } from './blocks/${block.category}/${block.name}'`
+).join('\n')}
+
+export default buildConfig({
+  // ...existing code...
+  collections: [
+    {
+      slug: 'pages',
+      // ...existing code...
+      fields: [
+        {
+          name: 'layout',
+          type: 'blocks',
+          blocks: [
+            HeroBlock,
+            ${blocksConfig.map(block => `${block.name}Block`).join(',\n            ')}
+          ],
+        },
+      ],
+    },
+  ],
+})
+```
+
+### 9. Git Commit
+
+```bash
+git add src/blocks/
+git add src/payload.config.ts
+git add src/migrations/
+
+# Gruppiere Blocks nach Kategorie für Commit Message
+BLOCKS_BY_CATEGORY=$(cat .temp/analysis/blocks-analysis.json | \
+  jq -r 'group_by(.category) | .[] | 
+    "\(.[] | .category): \([.[] | .name] | join(", "))"')
+
+git commit -m "feat(blocks): add content blocks
+
+Sources from relume/{Category}/{BlockName}.tsx
+
+Blocks added by category:
+${BLOCKS_BY_CATEGORY}
+
+Total: ${blocksConfig.length} blocks
+
+Components:
+${blocksConfig.map(b => `- ${b.name} (${b.category})`).join('\n')}
+
+✅ Each block with Component.tsx, config.ts, index.ts
+✅ RichText, Media, CMSLink properly used
+✅ German UX labels throughout
+✅ Original Relume designs preserved
+✅ All Tailwind classes maintained
+✅ ShadCN Button variants used
+✅ All migrations executed
+✅ Registered in payload.config.ts"
+
+echo "✅ Git Commit erstellt"
+```
+
+## Erfolgskriterien
+
+- [ ] Alle Blocks erfolgreich von GitHub geladen
+- [ ] Blocks korrekt nach Kategorie organisiert
+- [ ] Jeder Block hat vollständige Struktur (Component, config, index)
+- [ ] Spezielle Block-Typen (FAQ, CTA, Contact, Gallery) korrekt konfiguriert
+- [ ] RichText, Media, CMSLink korrekt verwendet
+- [ ] Nur ShadCN Button Variants verwendet (keine Custom-Styles!)
+- [ ] Alle Blocks in payload.config.ts registriert
+- [ ] Alle Migrationen erfolgreich ausgeführt
+- [ ] BlockRenderer funktioniert
+- [ ] Git Commit erstellt
+- [ ] Relume Designs exakt beibehalten
+- [ ] Alle Tailwind Classes exakt übernommen
+
+## Wichtige Hinweise
+
+- **ALLE** Blocks aus props müssen verarbeitet werden (kann 10-20+ sein)
+- Relume Design darf NICHT verändert werden
+- Nur Backend-Integration hinzufügen
+- Tailwind Classes beibehalten
+- Struktur und Layout exakt übernehmen
+- Buttons NICHT extra stylen - nur ShadCN variants verwenden
+
+## Nächster Schritt
+`.cursor/commands/05-finalize.mdc`

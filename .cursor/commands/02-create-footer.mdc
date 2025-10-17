@@ -1,0 +1,523 @@
+---
+description: Footer Komponente aus Relume GitHub laden und konvertieren
+---
+
+# Schritt 2: Footer erstellen
+
+## Input
+- Props: `footer` (z.B. "Footer1")
+- Build Config: `.temp/build-config.json`
+
+## Aufgaben
+
+### 1. Relume Komponente von GitHub laden
+
+```typescript
+// Lade Build Config
+const config = JSON.parse(fs.readFileSync('.temp/build-config.json'));
+const footerConfig = config.components.footer;
+
+console.log(`📥 Lade ${footerConfig.name} von GitHub...`);
+console.log(`   Path: ${footerConfig.path}`);
+
+// GitHub MCP Call
+const footerCode = await mcp.tools.github.read_file({
+  owner: config.relume.owner,
+  repo: config.relume.repo,
+  path: footerConfig.path,
+  branch: config.relume.branch
+});
+
+// Speichern für Analyse
+fs.writeFileSync(
+  `.temp/relume-components/footer/${footerConfig.name}.tsx`,
+  footerCode
+);
+
+console.log('✅ Footer Code geladen und gespeichert');
+```
+
+### 2. Code analysieren
+
+```typescript
+// Analysiere den Relume Code
+const analysis = {
+  hasLogo: footerCode.includes('logo') || footerCode.includes('Logo'),
+  hasColumns: footerCode.includes('column') || footerCode.includes('grid'),
+  hasSocialMedia: footerCode.includes('social') || footerCode.includes('Social'),
+  hasCopyright: footerCode.includes('copyright') || footerCode.includes('©'),
+  hasNewsletter: footerCode.includes('newsletter') || footerCode.includes('subscribe'),
+  columnCount: (footerCode.match(/column/gi) || []).length,
+  tailwindClasses: extractTailwindClasses(footerCode),
+};
+
+fs.writeFileSync(
+  '.temp/analysis/footer-analysis.json',
+  JSON.stringify(analysis, null, 2)
+);
+
+console.log('✅ Code Analyse abgeschlossen');
+```
+
+### 3. MobileFooter.tsx erstellen
+
+```typescript
+// filepath: src/Footer/MobileFooter.tsx
+'use client'
+
+import React from 'react'
+import type { Footer } from '@/payload-types'
+import { Button } from '@/components/ui/button'
+import { Media } from '@/components/Media'
+import { CMSLink } from '@/components/CMSLink'
+
+interface MobileFooterProps {
+  footer: Footer
+}
+
+export const MobileFooter: React.FC<MobileFooterProps> = ({ footer }) => {
+  // WICHTIG: Original Relume Code hier einfügen
+  // NUR Datenquelle ändern - KEINE Styles ändern!
+  // Tailwind Classes EXAKT beibehalten
+  
+  return (
+    <footer className="lg:hidden px-[5%] py-12">
+      <div className="container">
+        {/* Logo */}
+        {footer.logo && (
+          <div className="mb-8">
+            <Media 
+              resource={footer.logo} 
+              className="h-8 w-auto"
+            />
+          </div>
+        )}
+        
+        {/* Columns - Stack vertical on mobile */}
+        <div className="space-y-8">
+          {footer.columns?.map((column, index) => (
+            <div key={index}>
+              {column.heading && (
+                <h3 className="mb-4 text-sm font-semibold">
+                  {column.heading}
+                </h3>
+              )}
+              <ul className="space-y-3">
+                {column.links?.map((link, linkIndex) => (
+                  <li key={linkIndex}>
+                    <CMSLink
+                      {...link.link}
+                      className="text-sm text-muted-foreground hover:text-foreground"
+                    >
+                      {link.label}
+                    </CMSLink>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        
+        {/* Social Media */}
+        {footer.socialMedia && footer.socialMedia.length > 0 && (
+          <div className="mt-8 flex gap-4">
+            {footer.socialMedia.map((social, index) => (
+              <Button
+                key={index}
+                variant="ghost"
+                size="icon"
+                asChild
+              >
+                <a 
+                  href={social.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  aria-label={social.platform}
+                >
+                  {/* Icon based on platform */}
+                </a>
+              </Button>
+            ))}
+          </div>
+        )}
+        
+        {/* Copyright */}
+        {footer.copyright && (
+          <div className="mt-8 pt-8 border-t text-sm text-muted-foreground">
+            {footer.copyright}
+          </div>
+        )}
+      </div>
+    </footer>
+  )
+}
+```
+
+### 4. DesktopFooter.tsx erstellen
+
+```typescript
+// filepath: src/Footer/DesktopFooter.tsx
+'use client'
+
+import React from 'react'
+import type { Footer } from '@/payload-types'
+import { Button } from '@/components/ui/button'
+import { Media } from '@/components/Media'
+import { CMSLink } from '@/components/CMSLink'
+
+interface DesktopFooterProps {
+  footer: Footer
+}
+
+export const DesktopFooter: React.FC<DesktopFooterProps> = ({ footer }) => {
+  return (
+    <footer className="hidden lg:block px-[5%] py-16">
+      <div className="container">
+        <div className="grid grid-cols-12 gap-8">
+          {/* Logo Column */}
+          <div className="col-span-4">
+            {footer.logo && (
+              <Media 
+                resource={footer.logo} 
+                className="h-8 w-auto mb-6"
+              />
+            )}
+            {footer.description && (
+              <p className="text-sm text-muted-foreground">
+                {footer.description}
+              </p>
+            )}
+          </div>
+          
+          {/* Link Columns */}
+          {footer.columns?.map((column, index) => (
+            <div key={index} className="col-span-2">
+              {column.heading && (
+                <h3 className="mb-4 text-sm font-semibold">
+                  {column.heading}
+                </h3>
+              )}
+              <ul className="space-y-3">
+                {column.links?.map((link, linkIndex) => (
+                  <li key={linkIndex}>
+                    <CMSLink
+                      {...link.link}
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {link.label}
+                    </CMSLink>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        
+        {/* Bottom Bar */}
+        <div className="mt-12 pt-8 border-t flex items-center justify-between">
+          {/* Copyright */}
+          {footer.copyright && (
+            <p className="text-sm text-muted-foreground">
+              {footer.copyright}
+            </p>
+          )}
+          
+          {/* Social Media */}
+          {footer.socialMedia && footer.socialMedia.length > 0 && (
+            <div className="flex gap-2">
+              {footer.socialMedia.map((social, index) => (
+                <Button
+                  key={index}
+                  variant="ghost"
+                  size="icon"
+                  asChild
+                >
+                  <a 
+                    href={social.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    aria-label={social.platform}
+                  >
+                    {/* Icon based on platform */}
+                  </a>
+                </Button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </footer>
+  )
+}
+```
+
+### 5. PayloadCMS Config mit ShadCN Variants
+
+```typescript
+// filepath: src/Footer/config.ts
+import type { GlobalConfig } from 'payload'
+import { revalidateFooter } from './hooks/revalidateFooter'
+
+export const Footer: GlobalConfig = {
+  slug: 'footer',
+  label: 'Fußzeile',
+  fields: [
+    {
+      name: 'logo',
+      type: 'upload',
+      relationTo: 'media',
+      label: 'Logo',
+      admin: {
+        description: 'Logo im Footer (optional)',
+      },
+    },
+    {
+      name: 'description',
+      type: 'textarea',
+      label: 'Beschreibung',
+      admin: {
+        description: 'Kurze Beschreibung neben dem Logo',
+      },
+    },
+    {
+      name: 'columns',
+      type: 'array',
+      label: 'Link-Spalten',
+      minRows: 2,
+      maxRows: 4,
+      admin: {
+        description: 'Spalten mit Links (typisch 2-4 Spalten)',
+      },
+      fields: [
+        {
+          name: 'heading',
+          type: 'text',
+          label: 'Überschrift',
+          required: true,
+        },
+        {
+          name: 'links',
+          type: 'array',
+          label: 'Links',
+          fields: [
+            {
+              name: 'label',
+              type: 'text',
+              label: 'Beschriftung',
+              required: true,
+            },
+            {
+              name: 'link',
+              type: 'group',
+              label: 'Link',
+              fields: [
+                {
+                  name: 'type',
+                  type: 'select',
+                  options: [
+                    { label: 'Interne Seite', value: 'page' },
+                    { label: 'Externe URL', value: 'url' },
+                  ],
+                  defaultValue: 'page',
+                },
+                {
+                  name: 'page',
+                  type: 'relationship',
+                  relationTo: 'pages',
+                  admin: {
+                    condition: (_, siblingData) => siblingData?.type === 'page',
+                  },
+                },
+                {
+                  name: 'url',
+                  type: 'text',
+                  admin: {
+                    condition: (_, siblingData) => siblingData?.type === 'url',
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'socialMedia',
+      type: 'array',
+      label: 'Social Media',
+      admin: {
+        description: 'Social Media Links und Icons',
+      },
+      fields: [
+        {
+          name: 'platform',
+          type: 'select',
+          label: 'Plattform',
+          required: true,
+          options: [
+            { label: 'Facebook', value: 'facebook' },
+            { label: 'Twitter', value: 'twitter' },
+            { label: 'Instagram', value: 'instagram' },
+            { label: 'LinkedIn', value: 'linkedin' },
+            { label: 'YouTube', value: 'youtube' },
+            { label: 'GitHub', value: 'github' },
+          ],
+        },
+        {
+          name: 'url',
+          type: 'text',
+          label: 'URL',
+          required: true,
+        },
+      ],
+    },
+    {
+      name: 'copyright',
+      type: 'text',
+      label: 'Copyright Text',
+      defaultValue: '© 2024 Alle Rechte vorbehalten.',
+      admin: {
+        description: 'Copyright-Text am unteren Rand',
+      },
+    },
+    {
+      name: 'legalLinks',
+      type: 'array',
+      label: 'Rechtliche Links',
+      admin: {
+        description: 'Impressum, Datenschutz, etc.',
+      },
+      fields: [
+        {
+          name: 'label',
+          type: 'text',
+          label: 'Beschriftung',
+        },
+        {
+          name: 'page',
+          type: 'relationship',
+          relationTo: 'pages',
+          label: 'Seite',
+        },
+      ],
+    },
+  ],
+  hooks: {
+    afterChange: [revalidateFooter],
+  },
+}
+```
+
+### 6. Hook erstellen
+
+```typescript
+// filepath: src/Footer/hooks/revalidateFooter.ts
+import type { GlobalAfterChangeHook } from 'payload'
+import { revalidateTag } from 'next/cache'
+
+export const revalidateFooter: GlobalAfterChangeHook = ({ 
+  doc, 
+  req: { payload, context } 
+}) => {
+  if (!context.disableRevalidate) {
+    payload.logger.info(`Revalidating footer`)
+    revalidateTag('global_footer')
+  }
+  return doc
+}
+```
+
+### 7. Index Export
+
+```typescript
+// filepath: src/Footer/index.tsx
+'use client'
+
+import { MobileFooter } from './MobileFooter'
+import { DesktopFooter } from './DesktopFooter'
+import type { Footer as FooterType } from '@/payload-types'
+
+interface FooterProps {
+  footer: FooterType
+}
+
+export const Footer: React.FC<FooterProps> = ({ footer }) => {
+  return (
+    <>
+      <MobileFooter footer={footer} />
+      <DesktopFooter footer={footer} />
+    </>
+  )
+}
+```
+
+### 8. Migration erstellen
+
+```bash
+npm run payload migrate:create -- --name add-footer-global
+
+echo "Migration erstellt, führe aus..."
+npm run payload migrate
+
+echo "✅ Migration erfolgreich ausgeführt"
+```
+
+### 9. In payload.config.ts registrieren
+
+```typescript
+// filepath: src/payload.config.ts
+// ...existing code...
+import { Header } from './Header/config'
+import { Footer } from './Footer/config'
+
+export default buildConfig({
+  // ...existing code...
+  globals: [
+    Header,
+    Footer,
+    // ...existing code...
+  ],
+})
+```
+
+### 10. Git Commit
+
+```bash
+git add src/Footer/
+git add src/payload.config.ts
+git add src/migrations/
+
+git commit -m "feat(footer): add ${footerConfig.name} footer
+
+Source: relume/Footer/${footerConfig.name}.tsx
+Components:
+- MobileFooter.tsx
+- DesktopFooter.tsx
+- config.ts with German UX
+- revalidateFooter hook
+
+✅ Original Relume design preserved
+✅ All Tailwind classes maintained
+✅ ShadCN Button variants used
+✅ Migration executed
+✅ Registered in payload.config.ts"
+
+echo "✅ Git Commit erstellt"
+```
+
+## Erfolgskriterien
+
+- [ ] Footer Code erfolgreich von GitHub geladen
+- [ ] Code Analyse durchgeführt
+- [ ] MobileFooter.tsx mit originalem Relume Design
+- [ ] DesktopFooter.tsx mit originalem Relume Design
+- [ ] config.ts mit deutschen Labels
+- [ ] Nur ShadCN Button Variants verwendet (keine Custom-Styles!)
+- [ ] revalidateFooter Hook vorhanden
+- [ ] Migration erfolgreich ausgeführt
+- [ ] In payload.config.ts registriert
+- [ ] Git Commit erstellt
+- [ ] Alle Tailwind Classes exakt beibehalten
+
+## Nächster Schritt
+`.cursor/commands/03-create-heroes.mdc`
