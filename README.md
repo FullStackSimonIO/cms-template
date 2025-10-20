@@ -279,4 +279,5 @@ If you have any issues or questions, reach out to us on [Discord](https://discor
 # cms-template
 # max-mustermann
 #   m a x - m u s t e r m a n n  
+ #   s c h r e i n e r e i - e d h o l z e r  
  
