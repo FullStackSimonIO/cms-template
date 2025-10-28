@@ -146,8 +146,14 @@ export interface Page {
   id: number;
   title: string;
   hero: {
-    type: 'none' | 'postHero';
+    type: 'none' | 'postHero' | 'heroheader1';
+    /**
+     * Die Hauptüberschrift des Hero-Bereichs
+     */
     title: string;
+    /**
+     * Beschreibungstext unter der Überschrift
+     */
     richText?: {
       root: {
         type: string;
@@ -193,6 +199,10 @@ export interface Page {
           id?: string | null;
         }[]
       | null;
+    /**
+     * Das Hauptbild für den Hero-Bereich
+     */
+    image?: (number | null) | Media;
   };
   layout: Layout1Block[];
   meta?: {
@@ -741,6 +751,7 @@ export interface PagesSelect<T extends boolean = true> {
               image?: T;
               id?: T;
             };
+        image?: T;
       };
   layout?:
     | T

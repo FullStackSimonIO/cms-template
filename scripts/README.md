@@ -1,168 +1,267 @@
-# Relume Block Generator
+# 🚀 AI-Powered Block & Hero Generators
 
-Automatischer Generator der Relume-Komponenten vom GitHub Repository holt und in PayloadCMS Blöcke umwandelt.
+Automatische Generierung von PayloadCMS Blöcken und Heroes aus Relume-Komponenten mit KI-Unterstützung (Claude Sonnet 4.5).
 
-## 🚀 Verwendung
+---
 
-```bash
-pnpm generate-blocks Layout1 Layout2 Layout3 CTA1 FAQ1
-```
+## 📦 Block Generator
 
-## 📦 Was macht das Script?
+Erstellt PayloadCMS Blöcke aus Relume-Komponenten mit automatischer Client/Server-Trennung.
 
-1. **Fetcht Komponenten** vom [Relume Components Repository](https://github.com/FullStackSimonIO/relume-components)
-2. **Analysiert die Struktur** (Props wie tagline, heading, description, buttons, images)
-3. **Generiert PayloadCMS Dateien**:
-   - `config.ts` - Block-Konfiguration mit allen Feldern
-   - `Component.tsx` - React Frontend-Komponente
-4. **Registriert automatisch**:
-   - In `RenderBlocks.tsx`
-   - In `Pages Collection`
-5. **Regeneriert Types** mit `pnpm generate:types`
-
-## 📝 Beispiele
-
-### Einzelner Block
-```bash
-pnpm generate-blocks Layout1
-```
-
-### Mehrere Blöcke auf einmal
-```bash
-pnpm generate-blocks Layout1 Layout2 Layout3 Layout4
-```
-
-### Mix aus verschiedenen Kategorien
-```bash
-pnpm generate-blocks Layout1 CTA1 FAQ1 Team1 Contact1
-```
-
-## 📂 Kategorien
-
-Das Script erkennt automatisch die Kategorie aus dem Namen:
-
-- **Layout1-500** → `src/blocks/Layout/`
-- **CTA1-50** → `src/blocks/CTA/`
-- **FAQ1-50** → `src/blocks/FAQ/`
-- **Team1-50** → `src/blocks/Team/`
-- **Contact1-50** → `src/blocks/Contact/`
-- **Hero1-50** → `src/blocks/Hero/`
-
-## ✨ Features
-
-### Automatische Feld-Erkennung
-Das Script analysiert die Relume-Komponente und erstellt automatisch die richtigen PayloadCMS Felder:
-
-- ✅ **Tagline** - Unterüberschrift
-- ✅ **Heading** - Hauptüberschrift
-- ✅ **Description** → **RichText** mit vollem Lexical Editor
-- ✅ **Buttons** → **linkGroup()** mit bis zu 2 Links
-- ✅ **Images** → **Media Upload** mit `relationTo: 'media'`
-- ✅ **Image Position** - Links/Rechts Auswahl
-- ✅ **Spacing** - Abstände (Klein/Mittel/Groß/Keine)
-
-### RichText Editor Features
-Alle generierten RichText-Felder enthalten:
-- Textformatierung (Fett, Kursiv, Unterstrichen, etc.)
-- Überschriften (H1-H6)
-- Listen (geordnet, ungeordnet, Checklisten)
-- Farben (Text, Hintergrund, Markierungen)
-- Links (intern & extern)
-- Video-Einbettung (YouTube, Vimeo)
-- Toolbars (Fixed & Inline)
-
-### Deutsche Labels
-Alle Felder haben deutsche Beschreibungen für benutzerfreundliche Bedienung.
-
-## 🎯 Workflow
-
-1. **Komponente auswählen** auf [Relume.io](https://relume.io/components)
-2. **Namen notieren** (z.B. "Layout1")
-3. **Script ausführen**: `pnpm generate-blocks Layout1`
-4. **Fertig!** Block ist einsatzbereit
-
-## 🔧 Anpassungen
-
-Nach der Generierung können Sie:
-
-1. **Labels anpassen** in `config.ts`:
-   ```typescript
-   labels: {
-     singular: 'Mein Custom Block',
-     plural: 'Meine Custom Blöcke',
-   }
-   ```
-
-2. **Styling ändern** in `Component.tsx`:
-   ```tsx
-   className="text-3xl md:text-4xl lg:text-5xl font-bold"
-   ```
-
-3. **Felder hinzufügen/entfernen** in `config.ts`:
-   ```typescript
-   fields: [
-     // Ihre eigenen Felder hier
-   ]
-   ```
-
-## 📖 Struktur der generierten Dateien
-
-```
-src/blocks/
-└── Layout/
-    └── Layout1/
-        ├── config.ts       # Block-Konfiguration für PayloadCMS
-        └── Component.tsx   # React Frontend-Komponente
-```
-
-### config.ts
-- Block Slug und Interface Name
-- Deutsche Labels und Beschreibungen
-- Alle Felder mit Admin-Beschreibungen
-- RichText mit vollem Lexical Editor
-- linkGroup() für Buttons
-- Media Upload
-- Bild Position & Spacing Optionen
-
-### Component.tsx
-- Type-safe Props
-- Responsive Grid Layout
-- RichText Rendering
-- Media Component
-- CMSLink für Buttons
-- Flexible Bild-Position
-- Spacing Classes
-
-## ⚡ Performance
-
-Das Script arbeitet parallel und generiert mehrere Blöcke gleichzeitig:
+### Verwendung
 
 ```bash
-# Generiert 10 Blöcke in ~5-10 Sekunden
-pnpm generate-blocks Layout1 Layout2 Layout3 Layout4 Layout5 Layout6 Layout7 Layout8 Layout9 Layout10
+pnpm generate-blocks Layout1 Layout2 Contact1 FAQ1
 ```
+
+### Verwendung
+
+```bash
+pnpm generate-blocks Layout1 Layout2 Contact1 FAQ1
+```
+
+### Was wird generiert?
+
+Für jeden Block:
+- `src/blocks/{Category}/{BlockName}/config.ts` - PayloadCMS Konfiguration
+- `src/blocks/{Category}/{BlockName}/Component.tsx` - Server Component
+- `src/blocks/{Category}/{BlockName}/*.tsx` - Optionale Client Components (bei Interaktivität)
+
+### Workflow
+
+1. Script clont Relume Repository temporär
+2. Liest Komponente aus `{Category}/{BlockName}/component.tsx`
+3. Generiert AI-Prompt mit Layout1 und Layout2 als Referenz
+4. Wartet auf manuelle AI-Konvertierung (du öffnest Claude)
+5. Parst AI-Response und erstellt Dateien
+6. Registriert Block in `RenderBlocks.tsx` und `Pages/index.ts`
+7. Regeneriert TypeScript Types
+
+### Features
+
+- ✅ **Automatische Client/Server-Trennung**: Verhindert `'use client'` Probleme
+- ✅ **Voller Lexical Editor**: 20+ Features (Bold, Italic, Colors, Videos, etc.)
+- ✅ **Deutsche Labels**: Alle Felder mit deutschen Beschreibungen
+- ✅ **Keine Farboptionen**: Automatisch entfernt
+- ✅ **Type-Safe**: Extract-Pattern für saubere Types
+
+### Beispiel-Output
+
+```
+src/blocks/Layout/Layout2/
+├── config.ts           # PayloadCMS Konfiguration
+├── Component.tsx       # Server Component (nutzt RichText)
+└── VideoPlayer.tsx     # Client Component (mit 'use client')
+```
+
+---
+
+## 🎨 Hero Generator
+
+Erstellt PayloadCMS Heroes aus Relume Header/Hero-Komponenten mit **conditional Fields**.
+
+### Verwendung
+
+```bash
+pnpm generate-hero HeroHeader1 HeroHeader2
+```
+
+### Was wird generiert?
+
+Für jeden Hero:
+- `src/heros/{HeroName}/index.tsx` - Server Component
+- `src/heros/{HeroName}/*.tsx` - Optionale Client Components
+- **Update** `src/heros/config.ts` - Fügt conditional Fields hinzu
+
+### Besonderheit: Conditional Fields
+
+Heroes teilen sich eine gemeinsame Config. Jeder Hero-Type hat eigene Fields, die nur angezeigt werden, wenn der Type ausgewählt ist:
+
+```typescript
+{
+  name: 'tagline',
+  type: 'text',
+  label: 'Unterüberschrift',
+  admin: {
+    condition: (data, siblingData) => siblingData?.type === 'heroheader1',
+  },
+}
+```
+
+### Workflow
+
+1. Script clont Relume Repository
+2. Liest Hero aus `Header/{HeroName}/` oder `Hero/{HeroName}/`
+3. Generiert AI-Prompt mit PostHero als Referenz
+4. Wartet auf manuelle AI-Konvertierung (du öffnest Claude)
+5. Parst AI-Response:
+   - Erstellt Hero Component
+   - **Updated config.ts** mit neuen conditional Fields
+   - Fügt Type-Option hinzu
+6. Registriert Hero in `RenderHero.tsx`
+7. Regeneriert Types und prüft auf Fehler
+
+### Config Structure
+
+```typescript
+export const hero: Field = {
+  name: 'hero',
+  type: 'group',
+  fields: [
+    {
+      name: 'type',
+      type: 'select',
+      options: [
+        { label: 'None', value: 'none' },
+        { label: 'Post Hero', value: 'postHero' },
+        { label: 'HeroHeader1', value: 'heroheader1' }, // ← Automatisch hinzugefügt
+      ],
+    },
+    // Basis-Felder (immer sichtbar)
+    { name: 'title', type: 'text' },
+    { name: 'richText', type: 'richText' },
+    
+    // Conditional Fields (nur für bestimmte Types)
+    {
+      name: 'images',
+      type: 'array',
+      admin: {
+        condition: (_, { type }) => type === 'heroheader1',
+      },
+    },
+  ],
+}
+```
+
+---
+
+## 🛠️ Technische Details
+
+### Client vs. Server Components
+
+**Problem:** `'use client'` in Component.tsx → PayloadCMS-Imports werden client-seitig → Node.js Module im Browser → **Fehler**
+
+**Lösung:** Separation of Concerns
+- `Component.tsx` / `index.tsx`: **Server Component** (nutzt RichText, Media, etc.)
+- `InteractiveComponent.tsx`: **Client Component** (enthält useState, onClick, etc.)
+
+### AI-Prompt Structure
+
+Beide Generatoren nutzen strukturierte Prompts mit:
+- ✅ Relume Komponenten-Code
+- ✅ Bestehende Beispiele (Layout1, PostHero)
+- ✅ Anforderungen (deutsche Labels, keine Farben, Lexical Features)
+- ✅ Mappings (tagline → text, description → richText, etc.)
+- ✅ Output Format (Code-Blöcke mit filenames)
+
+### Automatische Registrierung
+
+**Blöcke:**
+```typescript
+// RenderBlocks.tsx
+import { Layout2Block } from '@/blocks/Layout/Layout2/Component'
+
+const blockComponents = {
+  layout2: Layout2Block, // ← Automatisch hinzugefügt
+}
+```
+
+```typescript
+// Pages/index.ts
+import { Layout2 } from '@/blocks/Layout/Layout2/config'
+
+blocks: [Layout1, Layout2 /* PLOP_BLOCKS */]
+```
+
+**Heroes:**
+```typescript
+// RenderHero.tsx
+import { HeroHeader1 } from './HeroHeader1'
+
+const heroes = {
+  postHero: PostHero,
+  heroheader1: HeroHeader1, // ← Automatisch hinzugefügt
+}
+```
+
+---
+
+## 📋 Checklists
+
+### Nach Block-Generierung
+
+- [ ] Component.tsx hat **kein** `'use client'`
+- [ ] Interaktive Features in separate Dateien
+- [ ] Block in RenderBlocks.tsx registriert
+- [ ] Block in Pages/index.ts registriert
+- [ ] Types regeneriert ohne Fehler
+- [ ] Dev-Server startet ohne Fehler
+
+### Nach Hero-Generierung
+
+- [ ] index.tsx hat **kein** `'use client'`
+- [ ] config.ts wurde korrekt erweitert
+- [ ] Type-Option wurde hinzugefügt
+- [ ] Conditional Fields haben `admin.condition`
+- [ ] Hero in RenderHero.tsx registriert
+- [ ] Types regeneriert ohne Fehler
+- [ ] Migration erstellt falls nötig
+
+---
 
 ## 🐛 Troubleshooting
 
-### "Error fetching [BlockName]"
-- Überprüfen Sie, ob der Block im Repository existiert
-- Korrekte Schreibweise? (Layout1, nicht layout1)
+### Fehler: `Module not found: Can't resolve 'fs'`
 
-### "Error regenerating types"
-- Manuell ausführen: `pnpm generate:types`
-- Dev-Server neustarten: `pnpm dev`
+**Ursache:** `'use client'` in Component/Hero, die PayloadCMS-Komponenten importiert
 
-### Block wird nicht angezeigt
-- Types regeneriert? `pnpm generate:types`
-- Dev-Server neugestartet?
-- Browser-Cache geleert?
+**Lösung:**
+1. Entferne `'use client'` aus Component/index.tsx
+2. Lagere interaktive Features in separate Client Components aus
+3. Restart Dev-Server
 
-## 📚 Weitere Informationen
+### Fehler: `Property 'fieldName' does not exist on type`
 
-- [PayloadCMS Blocks Dokumentation](https://payloadcms.com/docs/configuration/blocks)
-- [Relume Components Library](https://relume.io/components)
-- [Relume GitHub Repository](https://github.com/FullStackSimonIO/relume-components)
+**Ursache:** Types nicht regeneriert nach config-Änderung
 
-## 🎉 Happy Coding!
+**Lösung:**
+```bash
+pnpm generate:types
+```
 
-Mit diesem Generator können Sie in Sekunden professionelle Blöcke erstellen und direkt in Ihrem PayloadCMS verwenden.
+### Hero Fields werden nicht angezeigt
+
+**Ursache:** Falsche `admin.condition` oder Type-Wert
+
+**Lösung:** Prüfe in config.ts:
+```typescript
+admin: {
+  condition: (data, siblingData) => siblingData?.type === 'correct-slug-here',
+}
+```
+
+---
+
+## 📚 Weitere Dokumentation
+
+- [BLOCK_DEVELOPMENT_GUIDE.md](../BLOCK_DEVELOPMENT_GUIDE.md) - Best Practices für Block-Entwicklung
+- [PayloadCMS Blocks](https://payloadcms.com/docs/fields/blocks)
+- [PayloadCMS Conditional Logic](https://payloadcms.com/docs/admin/fields#conditional-logic)
+
+---
+
+## � Nächste Schritte
+
+1. **Teste Block Generator:**
+   ```bash
+   pnpm generate-blocks Contact2
+   ```
+
+2. **Teste Hero Generator:**
+   ```bash
+   pnpm generate-hero HeroHeader1
+   ```
+
+3. **Erstelle Custom Components** basierend auf den generierten Beispielen
+
+4. **Erweitere AI-Prompts** für bessere Ergebnisse
