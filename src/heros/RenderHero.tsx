@@ -1,6 +1,7 @@
 import React from 'react'
 
 import type { Page, Post } from '@/payload-types'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { PostHero } from './PostHero'
 import { HeroHeader1 } from './HeroHeader1'
 
