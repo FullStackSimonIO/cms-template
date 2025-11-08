@@ -152,6 +152,8 @@ Each block is fully designed and built into the front-end website that comes wit
 
 A deep editorial experience that allows complete freedom to focus just on writing content without breaking out of the flow with support for Payload blocks, media, links and other features provided out of the box. See [Lexical](https://payloadcms.com/docs/lexical/overview) docs.
 
+> **Note**: See [RichText Configuration Guide](./RICHTEXT_CONFIGURATION.md) for best practices when adding new RichText fields to avoid type issues with Vercel Postgres JSONB storage.
+
 ## Draft Preview
 
 All posts and pages are draft-enabled so you can preview them before publishing them to your website. To do this, these collections use [Versions](https://payloadcms.com/docs/configuration/collections#versions) with `drafts` set to `true`. This means that when you create a new post, project, or page, it will be saved as a draft and will not be visible on your website until you publish it. This also means that you can preview your draft before publishing it to your website. To do this, we automatically format a custom URL which redirects to your front-end to securely fetch the draft version of your content.
@@ -271,13 +273,3 @@ The seed script will also create a demo user for demonstration purposes only:
 ## Questions
 
 If you have any issues or questions, reach out to us on [Discord](https://discord.com/invite/payload) or start a [GitHub discussion](https://github.com/payloadcms/payload/discussions).
-# bayern-makler-24
-# der-bayerwald
-# juls-videographie
-# fit-mit-mary
-# julian-videograph
-# cms-template
-# max-mustermann
-#   m a x - m u s t e r m a n n  
- #   s c h r e i n e r e i - e d h o l z e r  
- 
