@@ -41,7 +41,7 @@ export const Pages = buildCollectionConfig({
       type: 'text',
       required: true,
     },
-    // Full-featured RichText with all features
+    // Full-featured RichText with all standard features
     {
       ...createRichTextField(),
       name: 'content',
@@ -61,20 +61,19 @@ export const Pages = buildCollectionConfig({
 ### What The Factory Functions Do
 
 #### `createRichTextField()`
-Full-featured editor with:
+Full-featured editor with all standard Payload CMS Lexical features:
 - Text formatting (bold, italic, underline)
 - Headings (h1-h6)
 - Lists (ordered, unordered, checklists)
 - Blockquotes
 - Links (internal and external)
-- Colors (text, background, highlight)
-- Embedded media (YouTube, Vimeo)
 - Indentation and alignment
+- Horizontal rules
 
 **Use this for**: Main content, detailed descriptions, blog posts
 
 #### `createSimpleRichTextField()`
-Minimal editor with:
+Minimal editor with essential features:
 - Text formatting (bold, italic, underline)
 - Headings (h2-h4)
 - Lists (ordered, unordered)
@@ -108,6 +107,7 @@ The factory functions ensure:
 1. **Consistent JSONB Structure**: All RichText fields follow the same Lexical format
 2. **Proper Type Generation**: `payload-types.ts` correctly identifies the field as RichText
 3. **Cross-Project Compatibility**: New projects using this template will have matching type definitions
+4. **Standard Features Only**: Uses only official Payload CMS Lexical features (no external dependencies)
 
 ## Migration Considerations
 
@@ -186,8 +186,8 @@ If you do need custom RichText configuration, add comments explaining why:
 ```typescript
 {
   ...createRichTextField({
-    // Override: No link feature for this specific field
-    // because it contains internal-only documentation
+    // Note: Extended configuration for special use case
+    // Reason: Needs custom feature set for internal documentation
   }),
   name: 'internalNotes',
 }
@@ -202,7 +202,7 @@ After adding a new RichText field:
 
 ## Environment Setup
 
-The factory functions work with your existing `src/fields/defaultLexical.ts` configuration. They use the same Lexical setup, so no additional environment variables are needed.
+The factory functions work with your existing `src/fields/defaultLexical.ts` configuration. They use only standard Payload CMS Lexical features, so no additional environment variables or dependencies are needed.
 
 ## Troubleshooting
 
@@ -241,6 +241,14 @@ import { createRichTextField } from '@/fields/richtext'
 2. Copy `src/fields/richtext.ts` to existing projects
 3. Refactor existing RichText fields to use factory functions
 
+### Issue: "External package not found errors"
+
+**Solution**: The template now uses only official Payload CMS Lexical features. No external extensions are required. If you see errors about missing packages like `payloadcms-lexical-ext`, they should be removed from your project:
+
+```bash
+pnpm remove payloadcms-lexical-ext
+```
+
 ## Version Compatibility
 
 This guide applies to:
@@ -252,4 +260,4 @@ This guide applies to:
 
 - [Payload CMS RichText Documentation](https://payloadcms.com/docs/rich-text)
 - [Lexical Editor Documentation](https://lexical.dev/)
-- [PayloadCMS Lexical Extension (payloadcms-lexical-ext)](https://github.com/payloadcms/payloadcms-lexical-ext)
+- [Payload CMS Lexical Features](https://payloadcms.com/docs/lexical)
