@@ -11,11 +11,11 @@ Phase 1: Projekt-Setup
     ↓
 Phase 2: Navbar & Footer Integration
     ↓
-Phase 3: Hero & Komponenten
+Phase 3: Pages-Collection (Heros + Blocks)
     ↓
-Phase 4: Collections & Features
+Phase 4: Additional Collections & Features
     ↓
-Phase 5: Deployment
+Phase 5: Deployment & Testing
 ```
 
 ---
@@ -428,14 +428,18 @@ Navbar & Footer komplett! Bereit für Heroes & Komponenten!
 
 ---
 
-## Phase 3: Hero & Komponenten-Entwicklung
+## Phase 3: Pages-Collection (Heros + Blocks)
+
+Diese Phase konzentriert sich auf die Entwicklung der **Pages Collection** mit ihren Haupt-Komponenten:
+- **Heros**: Header-Sections für Pages
+- **Blocks**: Content-Blöcke für flexible Page-Layouts
 
 ### Schritt 3.1: Hero-Auswahl
 
 **Frage:**
 
 ```
-Welche Hero-Komponenten benötigen Sie?
+Welche Hero-Komponenten benötigen Sie für die Pages Collection?
 
 Bitte geben Sie die Namen der Relume-Heroes an, z.B.:
 - HeroHeader1
@@ -449,6 +453,8 @@ Format: Komma-getrennte Liste
 
 **Siehe:** `HERO_DEVELOPMENT_GUIDE.md`
 
+**Ziel:** Heroes für Pages Collection erstellen
+
 **Für jeden Hero:**
 
 1. Lokalisiere in `.relume-reference`
@@ -457,12 +463,14 @@ Format: Komma-getrennte Liste
 4. Erstelle Frontend Component
 5. Registriere in `src/fields/hero/index.ts`
 
-### Schritt 3.3: Content-Blöcke-Auswahl
+### Schritt 3.3: Content-Blöcke-Auswahl (für Pages Collection)
 
 **Frage:**
 
 ```
-Welche Content-Blöcke benötigen Sie?
+Welche Content-Blöcke benötigen Sie für die Pages Collection?
+
+Diese Blöcke werden im Layout Builder der Pages Collection verfügbar sein.
 
 Kategorien:
 - Features: Feature1, Feature2, Feature3...
@@ -661,11 +669,12 @@ git push origin main
 - [ ] **Fullstack Factory Branding hinzugefügt ❤**
 - [ ] Footer Testing durchgeführt
 
-### Phase 3: Hero & Komponenten ✓
+### Phase 3: Pages-Collection (Heros + Blocks) ✓
 
-- [ ] Heroes konvertiert und integriert
-- [ ] Blocks konvertiert und integriert
+- [ ] Heroes für Pages Collection erstellt
+- [ ] Blocks für Pages Collection erstellt
 - [ ] RichText-Felder standardisiert
+- [ ] Pages Collection vollständig konfiguriert
 
 ### Phase 4: Collections & Features ✓
 
