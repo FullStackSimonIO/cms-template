@@ -1,0 +1,33 @@
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "your_github_token_here"
+      }
+    },
+    "vercel": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://mcp.vercel.com/your-project-name"]
+    },
+    "neondb": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://mcp.neon.tech/sse",
+        "--header",
+        "Authorization:Bearer your_neon_api_key_here"
+      ]
+    },
+    "ahrefs": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://api.ahrefs.com/mcp/mcp",
+        "--header",
+        "Authorization:Bearer your_ahrefs_token_here"
+      ]
+    }
+  }
+}

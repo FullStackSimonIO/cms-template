@@ -12,3 +12,6 @@ public/media/
 public/robots.txt
 public/sitemap*.xml
 .env*.local
+
+# Claude MCP config with secrets
+.claude/mcp-config.json
