@@ -139,17 +139,17 @@ vercel link --yes
 # 2. Environment Variables von Vercel pullen
 vercel env pull .env.local
 
-# 3. PayloadCMS Secrets generieren
+# 3. PayloadCMS Secrets generieren (hex to avoid whitespace issues)
 echo "" >> .env.local
 echo "# PayloadCMS Secrets (auto-generated)" >> .env.local
-echo "PAYLOAD_SECRET=$(openssl rand -base64 32)" >> .env.local
-echo "CRON_SECRET=$(openssl rand -base64 32)" >> .env.local
-echo "PREVIEW_SECRET=$(openssl rand -base64 32)" >> .env.local
+echo "PAYLOAD_SECRET=$(openssl rand -hex 32)" >> .env.local
+echo "CRON_SECRET=$(openssl rand -hex 32)" >> .env.local
+echo "PREVIEW_SECRET=$(openssl rand -hex 32)" >> .env.local
 
-# 4. Secrets zu Vercel pushen
-cat .env.local | grep PAYLOAD_SECRET | cut -d '=' -f2 | vercel env add PAYLOAD_SECRET production
-cat .env.local | grep CRON_SECRET | cut -d '=' -f2 | vercel env add CRON_SECRET production
-cat .env.local | grep PREVIEW_SECRET | cut -d '=' -f2 | vercel env add PREVIEW_SECRET production
+# 4. Secrets zu Vercel pushen (trim whitespace to be safe)
+cat .env.local | grep PAYLOAD_SECRET | cut -d '=' -f2 | tr -d '[:space:]' | vercel env add PAYLOAD_SECRET production
+cat .env.local | grep CRON_SECRET | cut -d '=' -f2 | tr -d '[:space:]' | vercel env add CRON_SECRET production
+cat .env.local | grep PREVIEW_SECRET | cut -d '=' -f2 | tr -d '[:space:]' | vercel env add PREVIEW_SECRET production
 
 # 5. Final Deployment mit allen Secrets
 vercel deploy --prod --yes
