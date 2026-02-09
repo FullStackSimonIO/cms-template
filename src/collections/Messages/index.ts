@@ -1,4 +1,5 @@
 import { CollectionConfig } from 'payload'
+import { createRichTextField } from '@/fields/richtext'
 
 const Messages: CollectionConfig = {
   slug: 'messages',
@@ -26,11 +27,11 @@ const Messages: CollectionConfig = {
       type: 'email',
       required: true,
     },
-    {
+    createRichTextField({
       name: 'message',
-      type: 'textarea',
+      label: 'Message',
       required: true,
-    },
+    }),
     {
       name: 'acceptTerms',
       type: 'checkbox',

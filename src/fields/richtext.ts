@@ -1,19 +1,25 @@
 import {
+  FixedToolbarFeature,
+  HeadingFeature,
+  InlineToolbarFeature,
+  lexicalEditor,
   BoldFeature,
   ItalicFeature,
-  LinkFeature,
-  ParagraphFeature,
-  lexicalEditor,
   UnderlineFeature,
-  type LinkFields,
-  HeadingFeature,
-  BlockquoteFeature,
+  StrikethroughFeature,
+  ParagraphFeature,
+  LinkFeature,
   OrderedListFeature,
   UnorderedListFeature,
-  ChecklistFeature,
-  IndentFeature,
+  BlockquoteFeature,
   AlignFeature,
+  IndentFeature,
   HorizontalRuleFeature,
+  SubscriptFeature,
+  SuperscriptFeature,
+  ChecklistFeature,
+  BlocksFeature,
+  type LinkFields,
 } from '@payloadcms/richtext-lexical'
 import type { TextFieldSingleValidation } from 'payload'
 
@@ -44,20 +50,36 @@ export const createRichTextField = (options?: any): any => ({
   editor: lexicalEditor({
     features: () => {
       return [
+        // Toolbars
+        FixedToolbarFeature(),
+        InlineToolbarFeature(),
+
+        // Structure
         ParagraphFeature(),
         HeadingFeature({
           enabledHeadingSizes: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
         }),
-        UnderlineFeature(),
+
+        // Text Formatting
         BoldFeature(),
         ItalicFeature(),
-        BlockquoteFeature(),
+        UnderlineFeature(),
+        StrikethroughFeature(),
+        SubscriptFeature(),
+        SuperscriptFeature(),
+
+        // Lists & Blocks
         OrderedListFeature(),
         UnorderedListFeature(),
         ChecklistFeature(),
-        IndentFeature(),
+        BlockquoteFeature(),
+
+        // Layout
         AlignFeature(),
+        IndentFeature(),
         HorizontalRuleFeature(),
+
+        // Links
         LinkFeature({
           enabledCollections: ['pages', 'posts'],
           fields: ({ defaultFields }) => {
@@ -86,6 +108,9 @@ export const createRichTextField = (options?: any): any => ({
             ]
           },
         }),
+
+        // Blocks Feature (for embedding reusable content blocks)
+        BlocksFeature({}),
       ]
     },
   }),
@@ -107,16 +132,28 @@ export const createSimpleRichTextField = (options?: any): any => ({
   editor: lexicalEditor({
     features: () => {
       return [
+        // Toolbars
+        FixedToolbarFeature(),
+        InlineToolbarFeature(),
+
+        // Structure
         ParagraphFeature(),
         HeadingFeature({
           enabledHeadingSizes: ['h2', 'h3', 'h4'],
         }),
+
+        // Text Formatting
         BoldFeature(),
         ItalicFeature(),
         UnderlineFeature(),
-        BlockquoteFeature(),
+        StrikethroughFeature(),
+
+        // Lists & Blocks
         OrderedListFeature(),
         UnorderedListFeature(),
+        BlockquoteFeature(),
+
+        // Links
         LinkFeature({
           enabledCollections: ['pages', 'posts'],
         }),
