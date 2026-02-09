@@ -41,15 +41,147 @@ Phase 5: Deployment
 cd /var/www/projects
 git clone <TEMPLATE_REPO_URL> ${PROJECT_SLUG}
 cd ${PROJECT_SLUG}
-rm -rf .git
-git init
-git remote add origin https://github.com/<ORG>/${PROJECT_SLUG}.git
 
-# Clone Relume Components als Referenz
+# 1. WICHTIG: Dependencies installieren BEVOR mit Entwicklung begonnen wird
+pnpm install
+
+# 2. Altes Remote-Repository entfernen (vom Template)
+git remote remove origin
+
+# 3. Neues PRIVATES GitHub Repository erstellen
+gh repo create ${PROJECT_SLUG} --private --source=. --remote=origin
+
+# 4. Initial Commit erstellen
+git add .
+git commit -m "chore: Initial commit from template
+
+- Cloned from CMS template
+- Dependencies installed
+- Ready for project-specific customization"
+
+# 5. Push zu neuem Repository
+git push -u origin main
+
+# 6. Initial Vercel Deployment (wird crashen - erwartet!)
+vercel deploy --prod --yes
+
+# ⚠️ ERWARTET: Deployment wird FEHLSCHLAGEN
+# Grund: Keine Datenbank/Storage konfiguriert
+# Das ist NORMAL und Teil des Prozesses!
+
+# 7. Clone Relume Components als Referenz
 git clone https://github.com/FullStackSimonIO/relume-components.git .relume-reference
 ```
 
-### Schritt 1.3: Branding-Konfiguration
+**⚠️ Voraussetzungen:**
+
+1. **GitHub CLI** authentifiziert:
+   ```bash
+   gh auth status  # Prüfen
+   gh auth login   # Falls nötig
+   ```
+
+2. **Vercel CLI** authentifiziert:
+   ```bash
+   vercel whoami  # Prüfen
+   vercel login   # Falls nötig
+   ```
+
+---
+
+### Schritt 1.3: 🛑 MANUELLER HALT - Database & Storage Setup
+
+**⚠️ WICHTIG: Deployment ist gecrasht (erwartet!)**
+
+Jetzt manuell im Vercel Dashboard:
+
+1. **Öffne Vercel Dashboard:**
+   ```bash
+   vercel dashboard
+   # Oder: https://vercel.com/dashboard
+   ```
+
+2. **Gehe zu Projekt:** `${PROJECT_SLUG}`
+
+3. **Storage Tab öffnen**
+
+4. **Neon Postgres Datenbank erstellen:**
+   - Click: "Create Database"
+   - Wähle: "Neon Postgres"
+   - Klick: "Continue"
+   - Klick: "Create"
+   - ✅ Warte bis Status: "Connected"
+
+5. **Vercel Blob Storage erstellen:**
+   - Click: "Create Store"
+   - Wähle: "Blob"
+   - Klick: "Continue"
+   - Klick: "Create"
+   - ✅ Warte bis Status: "Connected"
+
+**✋ HALT HIER - Warte auf User "go" Signal im Chat!**
+
+---
+
+### Schritt 1.4: Environment Setup (nach User "go")
+
+**⚠️ NUR ausführen nachdem User "go" gibt!**
+
+```bash
+# 1. Projekt verlinken
+vercel link --yes
+
+# 2. Environment Variables von Vercel pullen
+vercel env pull .env.local
+
+# 3. Random Secrets generieren und zu .env.local hinzufügen
+echo "" >> .env.local
+echo "# PayloadCMS Secrets (auto-generated)" >> .env.local
+echo "PAYLOAD_SECRET=$(openssl rand -base64 32)" >> .env.local
+echo "CRON_SECRET=$(openssl rand -base64 32)" >> .env.local
+echo "PREVIEW_SECRET=$(openssl rand -base64 32)" >> .env.local
+
+# 4. Alle Secrets zu Vercel pushen
+vercel env add PAYLOAD_SECRET production < <(grep PAYLOAD_SECRET .env.local | cut -d '=' -f2)
+vercel env add CRON_SECRET production < <(grep CRON_SECRET .env.local | cut -d '=' -f2)
+vercel env add PREVIEW_SECRET production < <(grep PREVIEW_SECRET .env.local | cut -d '=' -f2)
+
+# 5. Verifiziere .env.local
+cat .env.local
+```
+
+**Erwartete Environment Variables in .env.local:**
+```env
+# Von Vercel (NeonDB)
+POSTGRES_URL=postgres://...
+POSTGRES_PRISMA_URL=postgres://...
+POSTGRES_URL_NON_POOLING=postgres://...
+
+# Von Vercel (Blob Storage)
+BLOB_READ_WRITE_TOKEN=vercel_blob_rw_...
+
+# Auto-generiert
+PAYLOAD_SECRET=...
+CRON_SECRET=...
+PREVIEW_SECRET=...
+```
+
+### Schritt 1.5: Final Deployment
+
+```bash
+# Redeploy mit allen Environment Variables
+vercel deploy --prod --yes
+
+# Sollte jetzt ERFOLGREICH sein! ✅
+```
+
+**Vercel Dashboard prüfen:**
+- ✓ Build: Success
+- ✓ Deployment: Live
+- ✓ Database: Connected
+- ✓ Storage: Connected
+
+### Schritt 1.6: Branding-Konfiguration
 
 **Erstelle:** `src/config/branding.ts`
 
@@ -503,6 +635,16 @@ git push origin main
 
 - [ ] Onboarding-Informationen gesammelt
 - [ ] Repository geklont und initialisiert
+- [ ] Dependencies installiert (pnpm install)
+- [ ] GitHub Repository erstellt (PRIVATE)
+- [ ] Initial Commit gepusht
+- [ ] Initial Vercel Deployment (crashed - erwartet)
+- [ ] 🛑 MANUELL: NeonDB & Blob Storage in Vercel erstellt
+- [ ] ✋ User "go" Signal abgewartet
+- [ ] Environment Variables gepullt (.env.local)
+- [ ] Secrets generiert (PAYLOAD_SECRET, CRON_SECRET, PREVIEW_SECRET)
+- [ ] Secrets zu Vercel gepusht
+- [ ] Final Vercel Deployment (SUCCESS)
 - [ ] Branding konfiguriert
 
 ### Phase 2: Navbar & Footer Integration ✓
