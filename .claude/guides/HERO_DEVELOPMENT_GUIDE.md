@@ -267,11 +267,192 @@ export const HeroHeader1: React.FC<HeroHeader1Type> = ({ title, richText, images
 
 ---
 
+## 🎨 Styling Guidelines
+
+### ⚠️ WICHTIG: Keine hardcodierten Styles in Komponenten
+
+**Regel:** Frontend-Komponenten dürfen KEINE hardcodierten Schriftgrößen, Textfarben, Hintergrundfarben oder andere Design-Tokens enthalten. Alle Styles müssen global definiert werden.
+
+### ❌ VERBOTEN: Hardcodierte Werte
+
+```tsx
+// ❌ FALSCH: Hardcodierte Schriftgrößen
+<h1 className="text-6xl md:text-9xl">Hero Titel</h1>
+
+// ❌ FALSCH: Hardcodierte Farben
+<p className="text-blue-500">Description</p>
+<button className="bg-red-600 hover:bg-red-700">CTA Button</button>
+
+// ❌ FALSCH: Hardcodierte Spacing-Werte
+<section className="py-16 md:py-24 lg:py-28">
+```
+
+### ✅ RICHTIG: Semantic Klassen oder CSS-Variablen
+
+#### Option 1: Semantic Tailwind Klassen (Empfohlen)
+```tsx
+// ✅ GUT: Semantic Typography Classes
+<h1 className="hero-heading">Hero Titel</h1>
+<p className="hero-description">Description</p>
+
+// ✅ GUT: Semantic Color Classes
+<button className="btn-primary">CTA Button</button>
+<div className="bg-surface text-on-surface">Content</div>
+```
+
+#### Option 2: CSS-Variablen mit Tailwind
+```tsx
+// ✅ GUT: CSS-Variablen
+<h1 className="text-[var(--heading-hero)]">Hero Titel</h1>
+<p className="text-[var(--text-body)]">Description</p>
+```
+
+### 📂 Wo Styles definieren?
+
+#### 1. globals.css - Semantic Utility Classes
+```css
+/* src/app/globals.css */
+
+/* Typography */
+.hero-heading {
+  @apply text-6xl font-bold leading-tight md:text-8xl lg:text-9xl;
+}
+
+.hero-subheading {
+  @apply text-4xl font-semibold md:text-5xl lg:text-6xl;
+}
+
+.hero-description {
+  @apply text-lg text-gray-600 md:text-xl lg:text-2xl;
+}
+
+/* Buttons */
+.btn-primary {
+  @apply bg-primary text-white hover:bg-primary-dark px-6 py-3 rounded-md;
+}
+
+.btn-secondary {
+  @apply border-2 border-primary text-primary hover:bg-primary hover:text-white px-6 py-3 rounded-md;
+}
+
+/* Layout */
+.hero-section {
+  @apply py-16 md:py-24 lg:py-28;
+}
+```
+
+#### 2. tailwind.config.ts - Theme Definition
+```typescript
+// tailwind.config.ts
+export default {
+  theme: {
+    extend: {
+      colors: {
+        // Semantic Color Names
+        primary: {
+          DEFAULT: 'var(--color-primary)',
+          dark: 'var(--color-primary-dark)',
+          light: 'var(--color-primary-light)',
+        },
+        secondary: 'var(--color-secondary)',
+        surface: 'var(--color-surface)',
+        'on-surface': 'var(--color-on-surface)',
+      },
+      fontSize: {
+        'hero-xl': ['6rem', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
+        'hero-lg': ['4rem', { lineHeight: '1.2', letterSpacing: '-0.01em' }],
+      },
+    },
+  },
+}
+```
+
+#### 3. CSS Variables in globals.css
+```css
+/* src/app/globals.css */
+:root {
+  /* Colors */
+  --color-primary: #3b82f6;
+  --color-primary-dark: #2563eb;
+  --color-primary-light: #60a5fa;
+  --color-secondary: #8b5cf6;
+  --color-surface: #ffffff;
+  --color-on-surface: #1f2937;
+
+  /* Typography */
+  --heading-hero: 6rem;
+  --heading-large: 4rem;
+  --text-body: 1.125rem;
+}
+
+[data-theme="dark"] {
+  --color-primary: #60a5fa;
+  --color-surface: #1f2937;
+  --color-on-surface: #f9fafb;
+}
+```
+
+### 🎯 Praktische Beispiele
+
+#### Vorher (❌ Falsch):
+```tsx
+export const HeroHeader1 = ({ title, description, buttons }) => {
+  return (
+    <section className="px-[5%] py-16 md:py-24 lg:py-28">
+      <h1 className="text-6xl font-bold text-gray-900 md:text-9xl">
+        {title}
+      </h1>
+      <p className="text-lg text-gray-600 md:text-xl">
+        {description}
+      </p>
+      <button className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-3 rounded-md">
+        {buttons[0].title}
+      </button>
+    </section>
+  )
+}
+```
+
+#### Nachher (✅ Richtig):
+```tsx
+export const HeroHeader1 = ({ title, description, buttons }) => {
+  return (
+    <section className="hero-section container">
+      <h1 className="hero-heading text-on-surface">
+        {title}
+      </h1>
+      <p className="hero-description">
+        {description}
+      </p>
+      <button className="btn-primary">
+        {buttons[0].title}
+      </button>
+    </section>
+  )
+}
+```
+
+### 🔥 Warum ist das wichtig?
+
+1. **Konsistenz:** Ein zentrales Design-System für alle Komponenten
+2. **Wartbarkeit:** Änderungen an einem Ort statt in hunderten Dateien
+3. **Themes:** Dark Mode / Brand Themes einfach umschaltbar
+4. **Performance:** Wiederverwendbare CSS-Klassen reduzieren Bundle-Größe
+5. **Refactoring:** Design-Updates ohne Komponenten-Code anzufassen
+
+---
+
 ## 🛡️ Best Practices
 
 ### ✅ DO
 
-1. **Verwende lowercase slugs für type values:**
+1. **Verwende semantic CSS-Klassen statt hardcoded Werte:**
+   ```tsx
+   className="hero-heading" // ✅ Gut
+   className="text-6xl md:text-9xl font-bold" // ❌ Falsch
+   ```
+
+2. **Verwende lowercase slugs für type values:**
    ```typescript
    value: 'heroheader1' // ✅ Gut
    value: 'HeroHeader1' // ❌ Falsch

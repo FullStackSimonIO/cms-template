@@ -14,6 +14,7 @@
   }
 
   :root {
+    /* === COLORS === */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
@@ -47,6 +48,43 @@
     --success: 196 52% 74%;
     --warning: 34 89% 85%;
     --error: 10 100% 86%;
+
+    /* === TYPOGRAPHY === */
+    /* Base font size: 16px for all text */
+    --text-base: 1rem; /* 16px */
+
+    /* Headings - Mobile First (< 768px) */
+    --h1-size: 2.75rem;  /* 44px */
+    --h2-size: 2.5rem;   /* 40px */
+    --h3-size: 2rem;     /* 32px */
+    --h4-size: 1.75rem;  /* 28px */
+
+    /* === SPACING === */
+    --spacing-section-y: 4rem;     /* 64px */
+    --spacing-block-gap: 3rem;     /* 48px */
+    --spacing-container-x: 5%;
+  }
+
+  /* Tablet (>= 768px) */
+  @media (min-width: 768px) {
+    :root {
+      --h1-size: 3.5rem;   /* 56px */
+      --h2-size: 3.25rem;  /* 52px */
+      --h3-size: 2.5rem;   /* 40px */
+      --h4-size: 2rem;     /* 32px */
+      --spacing-section-y: 5rem;  /* 80px */
+    }
+  }
+
+  /* Desktop (>= 1024px) */
+  @media (min-width: 1024px) {
+    :root {
+      --h1-size: 4.5rem;   /* 72px */
+      --h2-size: 4rem;     /* 64px */
+      --h3-size: 3rem;     /* 48px */
+      --h4-size: 2.25rem;  /* 36px */
+      --spacing-section-y: 6rem;  /* 96px */
+    }
   }
 }
 
@@ -70,4 +108,276 @@
 
 .animate-scrollUp {
   animation: scrollUp 10s linear infinite;
+}
+
+/* ==================== TYPOGRAPHY SYSTEM ==================== */
+
+@layer components {
+  /* Base Headings - Apply to all H1-H4 globally */
+  h1 {
+    font-size: var(--h1-size);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    font-size: var(--h2-size);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  h3 {
+    font-size: var(--h3-size);
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  h4 {
+    font-size: var(--h4-size);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  h5 {
+    font-size: 1.25rem; /* 20px */
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  h6 {
+    font-size: 1.125rem; /* 18px */
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  /* All body text, paragraphs, lists = 16px */
+  p, li, span, a, label, input, textarea, button {
+    font-size: var(--text-base);
+  }
+
+  /* Ensure RichText content uses correct sizes */
+  .richtext h1 {
+    font-size: var(--h1-size);
+  }
+
+  .richtext h2 {
+    font-size: var(--h2-size);
+  }
+
+  .richtext h3 {
+    font-size: var(--h3-size);
+  }
+
+  .richtext h4 {
+    font-size: var(--h4-size);
+  }
+
+  .richtext p,
+  .richtext li,
+  .richtext span {
+    font-size: var(--text-base);
+  }
+
+  /* ==================== SEMANTIC CLASSES ==================== */
+
+  /* Hero Typography */
+  .hero-heading {
+    font-size: var(--h1-size);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  .hero-subheading {
+    font-size: var(--h2-size);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  .hero-tagline {
+    font-size: var(--text-base);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .hero-description {
+    font-size: var(--text-base);
+    line-height: 1.6;
+  }
+
+  /* Block Typography */
+  .block-heading {
+    font-size: var(--h2-size);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  .block-subheading {
+    font-size: var(--h3-size);
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .block-tagline {
+    font-size: var(--text-base);
+    font-weight: 600;
+  }
+
+  .block-description {
+    font-size: var(--text-base);
+    line-height: 1.6;
+  }
+
+  /* Card Typography */
+  .card-heading {
+    font-size: var(--h3-size);
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  .card-title {
+    font-size: var(--h4-size);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .card-description {
+    font-size: var(--text-base);
+    line-height: 1.6;
+  }
+
+  /* FAQ Typography */
+  .faq-question {
+    font-size: var(--h4-size);
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  .faq-answer {
+    font-size: var(--text-base);
+    line-height: 1.6;
+  }
+
+  /* Feature Typography */
+  .feature-heading {
+    font-size: var(--h4-size);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .feature-description {
+    font-size: var(--text-base);
+    line-height: 1.6;
+  }
+
+  /* Team Typography */
+  .team-member-name {
+    font-size: var(--h4-size);
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  .team-member-title {
+    font-size: var(--text-base);
+    font-weight: 500;
+  }
+
+  .team-member-bio {
+    font-size: var(--text-base);
+    line-height: 1.6;
+  }
+
+  /* ==================== LAYOUT ==================== */
+
+  /* Sections */
+  .hero-section {
+    padding-left: var(--spacing-container-x);
+    padding-right: var(--spacing-container-x);
+    padding-top: 4rem;
+    padding-bottom: 4rem;
+  }
+
+  @media (min-width: 768px) {
+    .hero-section {
+      padding-top: 6rem;
+      padding-bottom: 6rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .hero-section {
+      padding-top: 7rem;
+      padding-bottom: 7rem;
+    }
+  }
+
+  .block-section {
+    padding-left: var(--spacing-container-x);
+    padding-right: var(--spacing-container-x);
+    padding-top: var(--spacing-section-y);
+    padding-bottom: var(--spacing-section-y);
+  }
+
+  /* ==================== COMPONENTS ==================== */
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center;
+    @apply rounded-md font-medium transition-colors;
+    @apply px-6 py-3;
+    font-size: var(--text-base);
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary text-primary-foreground;
+    @apply hover:opacity-90;
+    @apply focus:ring-primary;
+  }
+
+  .btn-secondary {
+    @apply btn border-2 border-primary text-primary;
+    @apply hover:bg-primary hover:text-primary-foreground;
+    @apply focus:ring-primary;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-card border border-border rounded-lg;
+    @apply shadow-sm;
+  }
+
+  .card-feature {
+    @apply card p-6;
+  }
+
+  @media (min-width: 768px) {
+    .card-feature {
+      @apply p-8;
+    }
+  }
+
+  /* Forms */
+  .input {
+    @apply w-full rounded-md border border-input;
+    @apply px-4 py-3;
+    font-size: var(--text-base);
+    @apply bg-background text-foreground;
+    @apply focus:outline-none focus:ring-2 focus:ring-ring;
+  }
+
+  .label {
+    @apply mb-2 block font-medium;
+    font-size: var(--text-base);
+  }
+
+  .textarea {
+    @apply input resize-vertical;
+    min-height: 120px;
+  }
 }
