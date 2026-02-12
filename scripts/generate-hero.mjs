@@ -116,17 +116,14 @@ function createAIPrompt(heroName, componentContent, category) {
     path.join(__dirname, '..', 'src', 'heros', 'config.ts'),
     'utf-8',
   )
-  const existingPostHero = fs.readFileSync(
-    path.join(__dirname, '..', 'src', 'heros', 'PostHero', 'index.tsx'),
-    'utf-8',
-  )
 
-  return `# Aufgabe: Relume Hero "${heroName}" in PayloadCMS Hero umwandeln
+  return `# Aufgabe: Relume Hero "${heroName}" 1:1 in PayloadCMS Hero umwandeln
 
 ## Kontext
-Du bist ein Experte für PayloadCMS und React. Deine Aufgabe ist es, die folgende Relume-Hero-Komponente in einen PayloadCMS Hero umzuwandeln.
+Du bist ein Experte für PayloadCMS und React. Wandle die Relume-Hero-Komponente **exakt 1:1** um.
+Behalte die EXAKTE HTML-Struktur und alle Tailwind-Klassen bei. Ändere NUR die Datenquellen.
 
-**WICHTIG:** Heroes in PayloadCMS teilen sich eine gemeinsame Config mit **conditional Fields**. Je nach Hero-Type werden unterschiedliche Felder angezeigt.
+**WICHTIG:** Heroes teilen sich eine config mit conditional Fields per Hero-Type in \`src/heros/config.ts\`.
 
 ## Relume Hero: ${heroName}
 
@@ -134,106 +131,159 @@ Du bist ein Experte für PayloadCMS und React. Deine Aufgabe ist es, die folgend
 ${componentContent}
 \`\`\`
 
-## Anforderungen
-
-### 1. Erweitere config.ts (NICHT neu erstellen!)
-- **Hero Type**: \`${heroName.toLowerCase()}\`
-- Füge neue Option in \`type\` select field hinzu
-- Füge conditional Fields für diesen Hero-Type hinzu
-- **Felder mit \`admin.condition\`**: Zeige Felder nur wenn \`type === '${heroName.toLowerCase()}'\`
-- Deutsche Labels und Beschreibungen
-- **Basis-Felder** (für alle Heroes): title, richText
-- **Type-spezifische Felder**: Mit condition auf den Hero-Type
-
-### 2. Erstelle index.tsx
-- **WICHTIG: KEIN 'use client' in index.tsx - Server Component!**
-- Datei-Pfad: \`src/heros/${heroName}/index.tsx\`
-- Export: \`export const ${heroName}: React.FC<HeroProps>\`
-- Type-safe mit Hero-Props aus payload-types
-- Nutze: RichText, Media, CMSLink Komponenten
-- Responsive Design
-- **KEINE Hintergrundfarben**
-
-### 3. Interaktivität (falls nötig)
-- **Falls** Client-Interaktivität nötig (useState, onClick, etc.):
-  * Erstelle separate Datei mit \`'use client'\`
-  * Importiere in index.tsx
-  * **NIEMALS** \`'use client'\` in index.tsx selbst!
-
-## Bestehende Hero Config (zum Erweitern):
+## Bestehende Hero Config:
 
 \`\`\`typescript
 ${existingHeroConfig}
 \`\`\`
 
-## Beispiel Hero (PostHero):
+## STRIKTE REGELN
 
+### Config Regeln
+- Hero Type: \`${heroName.toLowerCase()}\`
+- Neue option im \`type\` select field
+- Felder als \`type: 'group'\` mit \`admin.condition: (_, siblingData) => siblingData?.type === '${heroName.toLowerCase()}'\`
+- Imports stehen schon in config.ts: \`createRichTextField\`, \`linkGroup\`
+- **KEINE Felder erfinden die nicht im Original sind**
+
+#### Feld-Mappings (Relume → PayloadCMS Config):
+| Relume Prop | PayloadCMS Config Feld |
+|---|---|
+| \`heading: string\` | \`{ name: 'heading', type: 'text', required: true }\` |
+| \`description: string\` | \`createRichTextField({ name: 'description', label: 'Beschreibung', required: true })\` |
+| \`tagline: string\` | \`{ name: 'tagline', type: 'text', required: true }\` |
+| \`buttons: ButtonProps[]\` | \`linkGroup({ overrides: { label: 'Buttons', maxRows: 2 } })\` |
+| \`image: ImageProps\` | \`{ name: 'image', type: 'upload', relationTo: 'media', required: true }\` |
+| \`video: string\` | \`{ name: 'video', type: 'upload', relationTo: 'media', required: true, filterOptions: { mimeType: { contains: 'video' } } }\` |
+
+### Component Regeln (Component.tsx in src/heros/${heroName}/)
+- **KEIN \`'use client'\`** - immer Server Component
+- Props werden von RenderHero.tsx übergeben (heading, description, links, image/video etc.)
+- **EXAKT dieselbe HTML-Struktur und Tailwind-Klassen wie im Original**
+- \`id="relume"\` entfernen
+
+#### Komponenten-Mappings (Relume → PayloadCMS Frontend):
+| Relume Original | PayloadCMS Ersatz |
+|---|---|
+| \`<img src={x.src} className="...">\` | \`{x && typeof x === 'object' && <Media resource={x} fill imgClassName="object-cover" />}\` |
+| \`<p className="...">{description}</p>\` | \`<RichText data={description} enableGutter={false} enableProse={false} className="..." />\` |
+| \`<Button {...button}>{button.title}</Button>\` | \`<CMSLink key={i} {...link} />\` (innerhalb \`{links?.map(({ link }, i) => ...)}\`) |
+| \`<video><source src={video}></video>\` | \`const videoSrc = typeof video === 'string' ? video : video?.url || ''\` dann \`<source src={videoSrc}>\` |
+
+#### Imports:
 \`\`\`tsx
-${existingPostHero}
+import React from 'react'
+import type { Media as MediaType } from '@/payload-types'
+import RichText from '@/components/RichText'
+import { Media } from '@/components/Media'
+import { CMSLink } from '@/components/Link'
 \`\`\`
 
-## Conditional Fields Pattern
+### RenderHero.tsx Integration
+Nach Erstellung muss der neue Hero in \`src/heros/RenderHero.tsx\` registriert werden:
+- Import der Komponente
+- Neuer case im switch
+- Props aus \`hero.${heroName.toLowerCase()}\` auslesen und übergeben
 
-So werden Fields conditional gemacht:
+## REFERENZ-BEISPIEL: HeroHeader65 (Bild Hintergrund + Overlay)
 
+### Relume Original:
+\`\`\`tsx
+export const Header65 = (props) => {
+  const { tagline, heading, description, buttons, image } = { ...defaults, ...props };
+  return (
+    <section id="relume" className="relative px-[5%] py-16 md:py-24 lg:py-28">
+      <div className="container relative z-10 max-w-lg text-center">
+        <p className="mb-3 font-semibold text-text-alternative md:mb-4">{tagline}</p>
+        <h1 className="mb-5 text-6xl font-bold text-text-alternative md:mb-6 md:text-9xl lg:text-10xl">{heading}</h1>
+        <p className="text-text-alternative md:text-md">{description}</p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-4 md:mt-8">
+          {buttons.map((button, index) => (<Button key={index} {...button}>{button.title}</Button>))}
+        </div>
+      </div>
+      <div className="absolute inset-0 z-0">
+        <img src={image.src} className="size-full object-cover" alt={image.alt} />
+        <div className="absolute inset-0 bg-black/50" />
+      </div>
+    </section>
+  );
+};
+\`\`\`
+
+### Config (group in config.ts):
 \`\`\`typescript
-{
-  name: 'myField',
-  type: 'text',
-  label: 'My Field',
+const heroHeader65: Field = {
+  name: 'heroHeader65',
+  type: 'group',
   admin: {
-    condition: (data, siblingData) => siblingData?.type === '${heroName.toLowerCase()}',
+    condition: (_, siblingData) => siblingData?.type === 'heroHeader65',
   },
+  fields: [
+    { name: 'tagline', type: 'text', required: true, label: 'Tagline' },
+    { name: 'heading', type: 'text', required: true, label: 'Überschrift' },
+    createRichTextField({ name: 'description', label: 'Beschreibung', required: true }),
+    linkGroup({ overrides: { label: 'Buttons', maxRows: 2 } }),
+    { name: 'image', type: 'upload', relationTo: 'media', required: true, label: 'Hintergrund Bild', filterOptions: { mimeType: { contains: 'image' } } },
+  ],
 }
 \`\`\`
 
-## Wichtige Mappings
+### Component.tsx:
+\`\`\`tsx
+import React from 'react'
+import type { Media as MediaType } from '@/payload-types'
+import RichText from '@/components/RichText'
+import { Media } from '@/components/Media'
+import { CMSLink } from '@/components/Link'
 
-Relume → PayloadCMS:
-- \`tagline\` → text field "Unterüberschrift / Tagline" (conditional)
-- \`heading\` → text field "title" (Basis-Feld, immer sichtbar)
-- \`description\` → richText field "richText" (Basis-Feld mit vollem Lexical Editor)
-- \`buttons\` → linkGroup() "links" (conditional, maxRows: 2)
-- \`image\` / \`images\` → upload field "media" oder "images" (conditional, relationTo: 'media')
-- \`features\` / \`items\` → array field (conditional)
+type Props = {
+  tagline: string
+  heading: string
+  description: any
+  links?: { link: any }[]
+  image: MediaType | string
+}
+
+export const HeroHeader65: React.FC<Props> = ({ tagline, heading, description, links, image }) => {
+  return (
+    <section className="relative px-[5%] py-16 md:py-24 lg:py-28">
+      <div className="container relative z-10 max-w-lg text-center">
+        <p className="mb-3 font-semibold text-text-alternative md:mb-4">{tagline}</p>
+        <h1 className="mb-5 text-6xl font-bold text-text-alternative md:mb-6 md:text-9xl lg:text-10xl">{heading}</h1>
+        <RichText data={description} enableGutter={false} enableProse={false} className="text-text-alternative md:text-md" />
+        {links && links.length > 0 && (
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-4 md:mt-8">
+            {links.map(({ link }, index) => (<CMSLink key={index} {...link} />))}
+          </div>
+        )}
+      </div>
+      <div className="absolute inset-0 z-0">
+        {image && typeof image === 'object' && (<Media resource={image} fill imgClassName="object-cover" />)}
+        <div className="absolute inset-0 bg-black/50" />
+      </div>
+    </section>
+  )
+}
+\`\`\`
 
 ## Output Format
 
-Gib mir bitte **zwei bis drei** Code-Blöcke zurück:
-
-**1. Config Update (TypeScript):**
 \`\`\`typescript filename="config-update.ts"
-// NUR die NEUEN Felder für diesen Hero-Type
-// Format: Array von Field-Definitionen mit admin.condition
-
-// Hero Type Option (für das type select field):
-{ label: '${heroName}', value: '${heroName.toLowerCase()}' }
-
-// Conditional Fields (alle mit admin.condition):
-[
-  {
-    name: 'fieldName',
-    type: 'text',
-    label: 'Label',
-    admin: {
-      condition: (data, siblingData) => siblingData?.type === '${heroName.toLowerCase()}',
-    },
-  },
-  // ... weitere Fields
-]
+// Die neue group Field-Definition für diesen Hero-Type
+// UND die neue type select option als Kommentar
+// KEINE import Statements nötig
 \`\`\`
 
-**2. Hero Component:**
-\`\`\`tsx filename="index.tsx"
-// Vollständiger Hero Component (OHNE 'use client'!)
+\`\`\`tsx filename="Component.tsx"
+// Vollständiger Component.tsx (OHNE 'use client'!)
 \`\`\`
 
-**3. Optional (nur bei Client-Interaktivität):**
-\`\`\`tsx filename="InteractiveComponent.tsx"
-// Client Component mit 'use client' Directive
+Optional:
+\`\`\`tsx filename="ClientComponent.tsx"
+// Client Component mit 'use client'
 \`\`\`
 
-Keine zusätzlichen Erklärungen, nur die Code-Blöcke!`
+Keine Erklärungen, nur Code!`
 }
 
 /**
@@ -247,7 +297,7 @@ function saveAIGeneratedFiles(heroName, aiResponse) {
   const configUpdateMatch = aiResponse.match(
     /```typescript filename="config-update\.ts"([\s\S]*?)```/,
   )
-  const componentMatch = aiResponse.match(/```tsx filename="index\.tsx"([\s\S]*?)```/)
+  const componentMatch = aiResponse.match(/```tsx filename="Component\.tsx"([\s\S]*?)```/)
 
   // Optional: Client Components
   const interactiveMatch = aiResponse.match(/```tsx filename="(.*?\.tsx)"([\s\S]*?)```/g)
@@ -257,7 +307,7 @@ function saveAIGeneratedFiles(heroName, aiResponse) {
     interactiveFiles = interactiveMatch
       .filter(
         (match) =>
-          !match.includes('filename="index.tsx"') && !match.includes('filename="config-update.ts"'),
+          !match.includes('filename="Component.tsx"') && !match.includes('filename="config-update.ts"'),
       )
       .map((match) => {
         const nameMatch = match.match(/filename="(.*?\.tsx)"/)
@@ -283,9 +333,9 @@ function saveAIGeneratedFiles(heroName, aiResponse) {
   // Erstelle Hero Verzeichnis
   fs.mkdirSync(heroDir, { recursive: true })
 
-  // Erstelle index.tsx
-  fs.writeFileSync(path.join(heroDir, 'index.tsx'), componentContent)
-  log(`  ✅ Created ${heroName}/index.tsx`, 'green')
+  // Erstelle Component.tsx
+  fs.writeFileSync(path.join(heroDir, 'Component.tsx'), componentContent)
+  log(`  ✅ Created ${heroName}/Component.tsx`, 'green')
 
   // Erstelle optionale Client Components
   if (interactiveFiles.length > 0) {
@@ -369,7 +419,7 @@ function registerInRenderHero(heroName) {
   const slug = heroName.toLowerCase()
 
   // Import hinzufügen
-  const importStatement = `import { ${heroName} } from './${heroName}'\n`
+  const importStatement = `import { ${heroName} } from './${heroName}/Component'\n`
 
   // Finde die Stelle nach den bestehenden Imports
   const lastImportMatch = content.match(/(import.*from.*\n)(?!import)/s)

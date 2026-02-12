@@ -140,143 +140,270 @@ function createAIPrompt(blockName, componentContent, category) {
     'utf-8',
   )
 
-  return `# Aufgabe: Relume Komponente "${blockName}" in PayloadCMS Block umwandeln
+  return `# Aufgabe: Relume Komponente "${blockName}" 1:1 in PayloadCMS Block umwandeln
 
 ## Kontext
-Du bist ein Experte für PayloadCMS und React. Deine Aufgabe ist es, die folgende Relume-Komponente in einen vollständigen PayloadCMS Block umzuwandeln.
+Du bist ein Experte für PayloadCMS und React. Wandle die Relume-Komponente **exakt 1:1** in einen PayloadCMS Block um.
+Behalte die EXAKTE HTML-Struktur und alle Tailwind-Klassen bei. Ändere NUR die Datenquellen.
 
-## Relume Komponente: ${blockName}
+## Relume Original: ${blockName}
 
 \`\`\`tsx
 ${componentContent}
 \`\`\`
 
-## Anforderungen
+## STRIKTE REGELN - KEINE ABWEICHUNGEN
 
-### 1. Erstelle config.ts
+### Dateistruktur
+- Config: \`src/blocks/${category}/${blockName}/config.ts\`
+- Component: \`src/blocks/${category}/${blockName}/Component.tsx\`
+- Falls Client-Interaktivität nötig: separates \`src/blocks/${category}/${blockName}/ClientComponent.tsx\` mit \`'use client'\`
+
+### Config Regeln (config.ts)
 - Block Slug: \`${blockName.toLowerCase()}\`
 - Interface Name: \`${blockName}Block\`
-- **WICHTIG: KEINE Farboptionen (backgroundColor, etc.)**
-- Deutsche Labels und Beschreibungen
-- Verwende für Fließtexte: RichText mit vollem Lexical Editor (siehe Beispiel)
-- Verwende für Links/Buttons: \`linkGroup()\` mit maxRows: 2
-- Verwende für Bilder: \`type: 'upload', relationTo: 'media'\`
-- Immer Felder: imagePosition (left/right), spacing (small/medium/large/none)
+- Deutsche Labels
+- Verwende \`createRichTextField\` für Fließtexte und \`linkGroup()\` für Buttons
+- **KEINE imagePosition/spacing/backgroundColor Felder hinzufügen**
+- **KEINE Felder erfinden die nicht im Original sind**
 
-### 2. Erstelle Component.tsx
-- **WICHTIG: KEIN 'use client' in Component.tsx - Server Component!**
-- Type-safe mit: \`Extract<Page['layout'][0], { blockType: '${blockName.toLowerCase()}' }>\`
-- Nutze: RichText, Media, CMSLink Komponenten
-- Responsive Grid Layout
-- Spacing Classes wie im Beispiel
-- **KEINE Hintergrundfarben**
+#### Feld-Mappings (Relume → PayloadCMS Config):
+| Relume Prop | PayloadCMS Config Feld |
+|---|---|
+| \`tagline: string\` | \`{ name: 'tagline', type: 'text', required: true }\` |
+| \`heading: string\` | \`{ name: 'heading', type: 'text', required: true }\` |
+| \`description: string\` | \`createRichTextField({ name: 'description', label: 'Beschreibung', required: true })\` |
+| \`buttons: ButtonProps[]\` | \`linkGroup({ overrides: { label: 'Buttons', maxRows: 2 } })\` |
+| \`image: ImageProps\` | \`{ name: 'image', type: 'upload', relationTo: 'media', required: true }\` |
+| \`icon: React.ReactNode\` | \`{ name: 'icon', type: 'upload', relationTo: 'media', required: true }\` |
+| \`features: Feature[]\` | \`{ name: 'features', type: 'array', fields: [...] }\` - Unterfelder analog mappen |
+| \`sections: Section[]\` | \`{ name: 'sections', type: 'array', fields: [...] }\` - Unterfelder analog mappen |
 
-### 3. Interaktivität (falls nötig)
-- **Falls** die Komponente Client-Interaktivität braucht (useState, onClick, etc.):
-  * Erstelle separate Datei: \`InteractiveComponent.tsx\` mit \`'use client'\`
-  * Importiere diese in \`Component.tsx\`
-  * **NIEMALS** \`'use client'\` in \`Component.tsx\` selbst!
-- **Grund**: \`'use client'\` macht alle Imports client-seitig, inkl. PayloadCMS → Node.js Module → Build-Fehler
+### Component.tsx Regeln
+- **KEIN \`'use client'\`** - immer Server Component
+- Type: \`Extract<Page['layout'][0], { blockType: '${blockName.toLowerCase()}' }>\`
+- **EXAKT dieselbe HTML-Struktur und Tailwind-Klassen wie im Original**
+- \`id="relume"\` entfernen
 
-## Beispiel Layout1 (Server Component - KEIN Interaktivität)
+#### Komponenten-Mappings (Relume → PayloadCMS Frontend):
+| Relume Original | PayloadCMS Ersatz |
+|---|---|
+| \`<img src={x.src} alt={x.alt} className="...">\` | \`{x && typeof x === 'object' && <Media resource={x} imgClassName="..." />}\` |
+| \`<p>{description}</p>\` oder \`<p className="md:text-md">{description}</p>\` | \`<RichText data={description} enableGutter={false} enableProse={false} className="md:text-md" />\` |
+| \`<Button {...button}>{button.title}</Button>\` | \`<CMSLink key={i} {...link} />\` (innerhalb \`{links?.map(({ link }, i) => ...)}\`) |
+| \`{tagline}\` (plain string) | Bleibt als \`<p className="...">{tagline}</p>\` (plain text) |
+| \`{heading}\` (plain string) | Bleibt als \`<h2 className="...">{heading}</h2>\` (plain text) |
+| \`<BiIcon className="size-8" />\` (React Icon) | \`{x.icon && typeof x.icon === 'object' && <Media resource={x.icon} imgClassName="size-12" />}\` |
 
-### config.ts Beispiel:
-\`\`\`typescript
-${existingConfig}
-\`\`\`
-
-### Component.tsx Beispiel:
-\`\`\`tsx
-${existingExample}
-\`\`\`
-
-## Beispiel Layout2 (mit Client Interaktivität - Video Modal)
-
-### Component.tsx (Server Component):
+#### Imports:
 \`\`\`tsx
 import React from 'react'
-import type { Media as MediaType, Page } from '@/payload-types'
-import { cn } from '@/utilities/ui'
+import type { Page } from '@/payload-types'
 import RichText from '@/components/RichText'
 import { CMSLink } from '@/components/Link'
-import { VideoPlayer } from './VideoPlayer'  // Client Component importiert
+import { Media } from '@/components/Media'
+\`\`\`
 
-type Layout2BlockType = Extract<Page['layout'][0], { blockType: 'layout2' }>
+### Client Components (nur wenn useState/useEffect/onClick nötig)
+- Separates File mit \`'use client'\`
+- KEINE PayloadCMS Imports in Client Components
+- Props als Interface definieren, im Server Component die Daten aufbereiten und übergeben
 
-export const Layout2Block: React.FC<Layout2BlockType> = ({
-  heading,
-  richText,
-  videoUrl,
-  media,
-  // ... props
+## REFERENZ-BEISPIEL: Layout237 (3-Spalten Features mit Icons)
+
+### Relume Original:
+\`\`\`tsx
+export const Layout237 = (props) => {
+  const { tagline, heading, description, sections, buttons } = { ...defaults, ...props };
+  return (
+    <section id="relume" className="px-[5%] py-16 md:py-24 lg:py-28">
+      <div className="container">
+        <div className="flex flex-col items-center">
+          <div className="rb-12 mb-12 text-center md:mb-18 lg:mb-20">
+            <div className="w-full max-w-lg">
+              <p className="mb-3 font-semibold md:mb-4">{tagline}</p>
+              <h2 className="rb-5 mb-5 text-5xl font-bold md:mb-6 md:text-7xl lg:text-8xl">{heading}</h2>
+              <p className="md:text-md">{description}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 items-start justify-center gap-y-12 md:grid-cols-3 md:gap-x-8 md:gap-y-16 lg:gap-x-12">
+            {sections.map((section, index) => (
+              <div key={index} className="flex w-full flex-col items-center text-center">
+                <div className="rb-5 mb-5 md:mb-6">{section.icon}</div>
+                <h3 className="mb-5 text-2xl font-bold md:mb-6 ...">{section.heading}</h3>
+                <p>{section.description}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-10 flex items-center gap-4 md:mt-14 lg:mt-16">
+            {buttons.map((button, index) => (<Button key={index} {...button}>{button.title}</Button>))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+\`\`\`
+
+### Config (config.ts):
+\`\`\`typescript
+import type { Block } from 'payload'
+import { createRichTextField } from '@/fields/richtext'
+import { linkGroup } from '@/fields/linkGroup'
+
+export const Layout237: Block = {
+  slug: 'layout237',
+  interfaceName: 'Layout237Block',
+  labels: { singular: 'Layout 237 - Drei Spalten Feature-Layout', plural: 'Layout 237 - Drei Spalten Feature-Layouts' },
+  fields: [
+    { name: 'tagline', type: 'text', required: true },
+    { name: 'heading', type: 'text', required: true },
+    createRichTextField({ name: 'description', label: 'Beschreibung', required: true }),
+    {
+      name: 'sections',
+      type: 'array',
+      required: true,
+      minRows: 1,
+      label: 'Sektionen',
+      fields: [
+        { name: 'icon', type: 'upload', relationTo: 'media', required: true },
+        { name: 'heading', type: 'text', required: true },
+        createRichTextField({ name: 'description', label: 'Beschreibung', required: true }),
+      ],
+    },
+    linkGroup({ overrides: { label: 'Buttons', maxRows: 2 } }),
+  ],
+}
+\`\`\`
+
+### Component.tsx:
+\`\`\`tsx
+import React from 'react'
+import type { Page } from '@/payload-types'
+import RichText from '@/components/RichText'
+import { CMSLink } from '@/components/Link'
+import { Media } from '@/components/Media'
+
+type Layout237BlockType = Extract<Page['layout'][0], { blockType: 'layout237' }>
+
+export const Layout237Block: React.FC<Layout237BlockType> = ({
+  tagline, heading, description, sections, links,
 }) => {
   return (
-    <section>
-      <div>
-        {/* Server-seitige Komponenten: RichText, CMSLink, etc. */}
-        <RichText data={richText} />
-        
-        {/* Client-Komponente für Interaktivität */}
-        <VideoPlayer videoUrl={videoUrl} media={media as MediaType} />
+    <section className="px-[5%] py-16 md:py-24 lg:py-28">
+      <div className="container">
+        <div className="flex flex-col items-center">
+          <div className="rb-12 mb-12 text-center md:mb-18 lg:mb-20">
+            <div className="w-full max-w-lg">
+              <p className="mb-3 font-semibold md:mb-4">{tagline}</p>
+              <h2 className="rb-5 mb-5 text-5xl font-bold md:mb-6 md:text-7xl lg:text-8xl">{heading}</h2>
+              <RichText data={description} enableGutter={false} enableProse={false} className="md:text-md" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 items-start justify-center gap-y-12 md:grid-cols-3 md:gap-x-8 md:gap-y-16 lg:gap-x-12">
+            {sections?.map((section, index) => (
+              <div key={index} className="flex w-full flex-col items-center text-center">
+                <div className="rb-5 mb-5 md:mb-6">
+                  {section.icon && typeof section.icon === 'object' && (
+                    <Media resource={section.icon} imgClassName="size-12" />
+                  )}
+                </div>
+                <h3 className="mb-5 text-2xl font-bold md:mb-6 md:text-3xl md:leading-[1.3] lg:text-4xl">{section.heading}</h3>
+                <RichText data={section.description} enableGutter={false} enableProse={false} />
+              </div>
+            ))}
+          </div>
+          {links && links.length > 0 && (
+            <div className="mt-10 flex items-center gap-4 md:mt-14 lg:mt-16">
+              {links.map(({ link }, i) => (<CMSLink key={i} {...link} />))}
+            </div>
+          )}
+        </div>
       </div>
     </section>
   )
 }
 \`\`\`
 
-### VideoPlayer.tsx (Client Component):
+## REFERENZ-BEISPIEL 2: Cta27 (CTA mit Hintergrundbild + Overlay)
+
+### Config:
+\`\`\`typescript
+import type { Block } from 'payload'
+import { createRichTextField } from '@/fields/richtext'
+import { linkGroup } from '@/fields/linkGroup'
+
+export const Cta27: Block = {
+  slug: 'cta27', interfaceName: 'Cta27Block',
+  labels: { singular: 'CTA 27', plural: 'CTA 27' },
+  fields: [
+    { name: 'heading', type: 'text', required: true },
+    createRichTextField({ name: 'description', label: 'Beschreibung', required: true }),
+    linkGroup({ overrides: { label: 'Buttons', maxRows: 2 } }),
+    { name: 'image', type: 'upload', relationTo: 'media', required: true, label: 'Hintergrundbild' },
+  ],
+}
+\`\`\`
+
+### Component.tsx:
 \`\`\`tsx
-'use client'
+import React from 'react'
+import type { Page } from '@/payload-types'
+import RichText from '@/components/RichText'
+import { CMSLink } from '@/components/Link'
+import { Media } from '@/components/Media'
 
-import React, { useState } from 'react'
-// Nur UI-Komponenten importieren, KEINE PayloadCMS Imports!
+type Cta27BlockType = Extract<Page['layout'][0], { blockType: 'cta27' }>
 
-export const VideoPlayer: React.FC<{ videoUrl: string, media: any }> = ({ videoUrl, media }) => {
-  const [isOpen, setIsOpen] = useState(false)
-  
+export const Cta27Block: React.FC<Cta27BlockType> = ({ heading, description, links, image }) => {
   return (
-    <>
-      <button onClick={() => setIsOpen(true)}>Play Video</button>
-      {isOpen && <VideoModal videoUrl={videoUrl} />}
-    </>
+    <section className="relative px-[5%] py-16 md:py-24 lg:py-28">
+      <div className="container relative z-10 max-w-lg text-center">
+        <h2 className="rb-5 mb-5 text-5xl font-bold text-text-alternative md:mb-6 md:text-7xl lg:text-8xl">{heading}</h2>
+        <RichText data={description} enableGutter={false} enableProse={false} className="text-text-alternative md:text-md" />
+        {links && links.length > 0 && (
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-4 md:mt-8">
+            {links.map(({ link }, i) => (<CMSLink key={i} {...link} />))}
+          </div>
+        )}
+      </div>
+      <div className="absolute inset-0 z-0">
+        {image && typeof image === 'object' && (<Media resource={image} imgClassName="size-full object-cover" />)}
+        <div className="absolute inset-0 bg-black/50" />
+      </div>
+    </section>
   )
 }
 \`\`\`
 
-## Wichtige Mappings
+## Bestehende Referenz (Layout1)
 
-Relume → PayloadCMS:
-- \`tagline\` → text field "Unterüberschrift / Tagline"
-- \`heading\` → text field "Überschrift" (required)
-- \`description\` → richText field "Fließtext" (mit vollem Lexical Editor)
-- \`buttons\` → linkGroup() "Call-to-Action Buttons"
-- \`image\` / \`firstImage\` → upload field "Bild" (relationTo: 'media')
-- \`icon\` → upload field "Icon" (wenn vorhanden)
-- \`subHeadings\` → Analysieren und passend umsetzen
-- \`sections\` → Analysieren und passend umsetzen
-- \`features\` → Analysieren und passend umsetzen
-- \`cards\` → Analysieren und passend umsetzen
+### config.ts:
+\`\`\`typescript
+${existingConfig}
+\`\`\`
+
+### Component.tsx:
+\`\`\`tsx
+${existingExample}
+\`\`\`
 
 ## Output Format
 
-Gib mir bitte **zwei bis drei** Code-Blöcke zurück:
-
-**Immer erforderlich:**
 \`\`\`typescript filename="config.ts"
-// Vollständiger config.ts Inhalt hier
+// Vollständiger config.ts Inhalt mit imports
 \`\`\`
 
 \`\`\`tsx filename="Component.tsx"
-// Vollständiger Component.tsx Inhalt hier (OHNE 'use client'!)
+// Vollständiger Component.tsx Inhalt (OHNE 'use client'!)
 \`\`\`
 
-**Optional (nur bei Client-Interaktivität):**
+Optional bei Client-Interaktivität:
 \`\`\`tsx filename="InteractiveComponent.tsx"
-// Client Component mit 'use client' Directive
-// NUR UI-Komponenten importieren, KEINE PayloadCMS Imports!
+// Client Component mit 'use client'
 \`\`\`
 
-Keine zusätzlichen Erklärungen, nur die Code-Blöcke!`
+Keine Erklärungen, nur Code!`
 }
 
 /**
@@ -348,11 +475,11 @@ function registerInRenderBlocks(blockName, category, slug) {
 
   // Import hinzufügen
   const importStatement = `import { ${blockName}Block } from '@/blocks/${category}/${blockName}/Component'\n`
-  content = content.replace(/(\/\* PLOP_IMPORTS \*\/)/, `${importStatement}$1`)
+  content = content.replace(/(\/* PLOP_IMPORTS \*\/)/, `${importStatement}$1`)
 
   // Block registrieren
   const blockRegistration = `  ${slug}: ${blockName}Block,\n  `
-  content = content.replace(/(\/\* PLOP_EXPORTS \*\/)/, `${blockRegistration}$1`)
+  content = content.replace(/(\/* PLOP_EXPORTS \*\/)/, `${blockRegistration}$1`)
 
   fs.writeFileSync(renderBlocksPath, content)
   log(`  ✅ Registered in RenderBlocks.tsx`, 'green')
@@ -367,11 +494,11 @@ function registerInPagesCollection(blockName, category) {
 
   // Import hinzufügen
   const importStatement = `import { ${blockName} } from '@/blocks/${category}/${blockName}/config'\n`
-  content = content.replace(/(\/\*\s*PLOP_IMPORT_BLOCK_CONFIG\s*\*\/)/, `${importStatement}$&`)
+  content = content.replace(/(\/*\s*PLOP_IMPORT_BLOCK_CONFIG\s*\*\/)/, `${importStatement}$&`)
 
   // Block in Array hinzufügen
   const blockRegistration = `                ${blockName},\n                `
-  content = content.replace(/(\/\*\s*PLOP_BLOCKS\s*\*\/)/, `${blockRegistration}$1`)
+  content = content.replace(/(\/*\s*PLOP_BLOCKS\s*\*\/)/, `${blockRegistration}$1`)
 
   fs.writeFileSync(pagesPath, content)
   log(`  ✅ Registered in Pages Collection`, 'green')
